@@ -8,7 +8,9 @@ import { RouterModule } from '@angular/router';
 
 // Import SharedModule and interceptor
 import { SharedModule } from './shared/shared.module';
-import { TokenInterceptor } from './auth/interceptors/token.interceptor';
+import { tokenInterceptor } from './auth/interceptors/token.interceptor';
+import { MockApiInterceptor } from './mocks/mock-api.interceptor';
+import { environment } from '../environments/environment';
 
 // Import routes
 import { routes } from './app-routing.module';
@@ -25,7 +27,12 @@ import { routes } from './app-routing.module';
   ],
   providers: [
     provideClientHydration(),
-    { provide: HTTP_INTERCEPTORS, useClass: TokenInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useValue: tokenInterceptor, multi: true },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: MockApiInterceptor,
+      multi: true,
+    },
   ],
   // Remove bootstrap array for standalone components
 })
