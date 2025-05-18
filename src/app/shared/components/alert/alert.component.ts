@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationStart } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Alert, AlertService } from '../../services/alert.service';
+import { AlertService, Alert } from '../../services/alert.service';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -25,15 +25,24 @@ export class AlertComponent implements OnInit, OnDestroy {
     // Subscribe to new alert notifications
     this.alertSubscription = this.alertService
       .onAlert(this.id)
-      .subscribe((alerts) => {
-        // Clear alerts when an empty array is passed
-        if (!alerts.length) {
-          this.alerts = [];
+      .subscribe((alert: Alert) => {
+        // Clear alerts when an empty alert is received
+        if (!alert.message) {
+          // Filter out alerts without 'keepAfterRouteChange' flag
+          this.alerts = this.alerts.filter((x) => x.keepAfterRouteChange);
+
+          // Remove 'keepAfterRouteChange' flag on the rest
+          this.alerts.forEach((x) => delete x.keepAfterRouteChange);
           return;
         }
 
         // Add alert to array
-        this.alerts = alerts;
+        this.alerts.push(alert);
+
+        // Auto close alert if required
+        if (alert.autoClose) {
+          setTimeout(() => this.removeAlert(alert), 3000);
+        }
       });
 
     // Clear alerts on location change
@@ -51,26 +60,43 @@ export class AlertComponent implements OnInit, OnDestroy {
   }
 
   removeAlert(alert: Alert): void {
-    // Check if the alert has already been removed
+    // Check if alert has already been removed
     if (!this.alerts.includes(alert)) return;
 
-    // Remove alert
-    this.alertService.clear(alert.id);
+    if (this.fade) {
+      // Fade out alert
+      alert.fade = false;
+
+      // Remove alert after faded out
+      setTimeout(() => {
+        this.alerts = this.alerts.filter((x) => x !== alert);
+      }, 250);
+    } else {
+      // Remove alert
+      this.alerts = this.alerts.filter((x) => x !== alert);
+    }
   }
 
   cssClass(alert: Alert): string {
     if (!alert) return '';
-
-    const classes = ['alert', 'alert-dismissible', 'fade', 'show'];
 
     const alertTypeClass = {
       success: 'alert-success',
       error: 'alert-danger',
       info: 'alert-info',
       warning: 'alert-warning',
+      danger: 'alert-danger',
     };
 
-    classes.push(alertTypeClass[alert.type]);
+    const classes = ['alert', 'alert-dismissible'];
+
+    if (alert.type) {
+      classes.push(alertTypeClass[alert.type]);
+    }
+
+    if (alert.fade) {
+      classes.push('fade');
+    }
 
     return classes.join(' ');
   }

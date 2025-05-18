@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { filter } from 'rxjs/operators';
 
 export interface Alert {
   id: string;
@@ -7,60 +8,50 @@ export interface Alert {
   message: string;
   autoClose?: boolean;
   keepAfterRouteChange?: boolean;
+  fade?: boolean;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class AlertService {
-  private alertSubject = new BehaviorSubject<Alert[]>([]);
-  public alerts$: Observable<Alert[]> = this.alertSubject.asObservable();
+  private subject = new Subject<Alert>();
+  private defaultId = 'default-alert';
 
-  constructor() {}
-
-  success(message: string, options: Partial<Alert> = {}): void {
-    this.alert({ ...options, type: 'success', message });
+  // Enable subscribing to alerts observable
+  onAlert(id = this.defaultId): Observable<Alert> {
+    return this.subject.asObservable().pipe(filter((x) => x && x.id === id));
   }
 
-  error(message: string, options: Partial<Alert> = {}): void {
-    this.alert({ ...options, type: 'danger', message });
+  // Convenience methods
+  success(message: string, options?: Partial<Alert>): void {
+    this.alert({ type: 'success', message, ...options });
   }
 
-  info(message: string, options: Partial<Alert> = {}): void {
-    this.alert({ ...options, type: 'info', message });
+  error(message: string, options?: Partial<Alert>): void {
+    this.alert({ type: 'danger', message, ...options });
   }
 
-  warning(message: string, options: Partial<Alert> = {}): void {
-    this.alert({ ...options, type: 'warning', message });
+  info(message: string, options?: Partial<Alert>): void {
+    this.alert({ type: 'info', message, ...options });
   }
 
+  warn(message: string, options?: Partial<Alert>): void {
+    this.alert({ type: 'warning', message, ...options });
+  }
+
+  // Main alert method
   alert(alert: Partial<Alert>): void {
-    const newAlert: Alert = {
-      id: this.generateId(),
-      type: alert.type || 'info',
-      message: alert.message || '',
-      autoClose: alert.autoClose !== false,
-      keepAfterRouteChange: alert.keepAfterRouteChange || false,
-    };
+    alert.id = alert.id || this.defaultId;
+    alert.autoClose = alert.autoClose === undefined ? true : alert.autoClose;
+    alert.keepAfterRouteChange = alert.keepAfterRouteChange || false;
+    alert.fade = alert.fade || true;
 
-    this.alertSubject.next([...this.alertSubject.value, newAlert]);
-
-    if (newAlert.autoClose) {
-      setTimeout(() => this.removeAlert(newAlert), 5000);
-    }
+    this.subject.next(alert as Alert);
   }
 
-  removeAlert(alert: Alert): void {
-    this.alertSubject.next(
-      this.alertSubject.value.filter((x) => x.id !== alert.id)
-    );
-  }
-
-  clear(): void {
-    this.alertSubject.next([]);
-  }
-
-  private generateId(): string {
-    return Date.now().toString();
+  // Clear alerts
+  clear(id = this.defaultId): void {
+    this.subject.next({ id } as Alert);
   }
 }
