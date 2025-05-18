@@ -11,6 +11,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./home/home.component').then((m) => m.HomeComponent),
   },
-  // Auth routes will be added in chunk 2 and 3
+  {
+    path: 'login',
+    loadComponent: () =>
+      import('./auth/login/login.component').then((m) => m.LoginComponent),
+  },
+  // Auth routes will be added in chunk 3
   // Protected routes will be added in later chunks
 ];
