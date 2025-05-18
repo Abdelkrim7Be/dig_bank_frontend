@@ -11,6 +11,7 @@ import {
 import { User } from '../models/user.model';
 import { TokenStorageService } from './token-storage.service';
 import { environment } from '../../../environments/environment';
+import { JwtHelperService } from '@auth0/angular-jwt';
 
 const httpOptions = {
   headers: new HttpHeaders({ 'Content-Type': 'application/json' }),
@@ -24,6 +25,7 @@ export class AuthService {
   private apiUrl = environment.apiUrl;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
+  private jwtHelper = new JwtHelperService();
 
   constructor(
     private http: HttpClient,
@@ -126,5 +128,13 @@ export class AuthService {
         return of(false);
       })
     );
+  }
+
+  /**
+   * Get user role
+   */
+  getUserRole(): string | null {
+    const user = this.getCurrentUser();
+    return user ? user.role : null;
   }
 }
