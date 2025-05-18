@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
+import { Router } from '@angular/router';
 import {
   LoginRequest,
   RegisterRequest,
@@ -19,13 +20,15 @@ const httpOptions = {
   providedIn: 'root',
 })
 export class AuthService {
+  private readonly TOKEN_KEY = 'auth_token';
   private apiUrl = environment.apiUrl;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(
     private http: HttpClient,
-    private tokenService: TokenStorageService
+    private tokenService: TokenStorageService,
+    private router: Router
   ) {
     // Load user from local storage on service initialization
     const user = this.tokenService.getUser();
@@ -45,15 +48,6 @@ export class AuthService {
           this.tokenService.saveToken(response.token);
           this.tokenService.saveUser(response.user);
           this.currentUserSubject.next(response.user);
-        }),
-        catchError((error) => {
-          console.error('Login error:', error);
-          return throwError(
-            () =>
-              new Error(
-                error.error?.message || 'Login failed. Please try again.'
-              )
-          );
         })
       );
   }
@@ -83,13 +77,16 @@ export class AuthService {
   logout(): void {
     this.tokenService.signOut();
     this.currentUserSubject.next(null);
+    localStorage.removeItem(this.TOKEN_KEY);
+    this.router.navigate(['/login']);
   }
 
   /**
    * Check if user is authenticated
    */
   isAuthenticated(): boolean {
-    return !!this.tokenService.getToken();
+    const token = this.getToken();
+    return !!token; // Return true if token exists, false otherwise
   }
 
   /**
@@ -97,6 +94,10 @@ export class AuthService {
    */
   getToken(): string | null {
     return this.tokenService.getToken();
+  }
+
+  setToken(token: string): void {
+    localStorage.setItem(this.TOKEN_KEY, token);
   }
 
   /**
