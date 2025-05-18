@@ -72,6 +72,16 @@ import { CommonModule } from '@angular/common';
             <span *ngIf="!collapsed">Profile</span>
           </a>
         </li>
+        <li class="nav-item">
+          <a
+            class="nav-link text-white d-flex align-items-center"
+            routerLink="/users"
+            routerLinkActive="active"
+          >
+            <i class="bi bi-people me-2"></i>
+            <span *ngIf="!collapsed">Users</span>
+          </a>
+        </li>
       </ul>
 
       <div class="mt-auto">
