@@ -1,0 +1,130 @@
+import { Component, Input } from '@angular/core';
+import { RouterLink, RouterLinkActive } from '@angular/router';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-sidebar',
+  standalone: true,
+  imports: [RouterLink, RouterLinkActive, CommonModule],
+  template: `
+    <div
+      class="sidebar bg-dark text-white p-3 d-flex flex-column"
+      [class.collapsed]="collapsed"
+    >
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0" *ngIf="!collapsed">Navigation</h5>
+        <button class="btn btn-sm btn-outline-light" (click)="toggleSidebar()">
+          <i
+            class="bi"
+            [ngClass]="collapsed ? 'bi-chevron-right' : 'bi-chevron-left'"
+          ></i>
+        </button>
+      </div>
+
+      <ul class="nav flex-column gap-2">
+        <li class="nav-item">
+          <a
+            class="nav-link text-white d-flex align-items-center"
+            routerLink="/dashboard"
+            routerLinkActive="active"
+          >
+            <i class="bi bi-speedometer2 me-2"></i>
+            <span *ngIf="!collapsed">Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link text-white d-flex align-items-center"
+            routerLink="/accounts"
+            routerLinkActive="active"
+          >
+            <i class="bi bi-wallet2 me-2"></i>
+            <span *ngIf="!collapsed">Accounts</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link text-white d-flex align-items-center"
+            routerLink="/transactions"
+            routerLinkActive="active"
+          >
+            <i class="bi bi-arrow-left-right me-2"></i>
+            <span *ngIf="!collapsed">Transactions</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link text-white d-flex align-items-center"
+            routerLink="/transfers"
+            routerLinkActive="active"
+          >
+            <i class="bi bi-send me-2"></i>
+            <span *ngIf="!collapsed">Transfers</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link text-white d-flex align-items-center"
+            routerLink="/profile"
+            routerLinkActive="active"
+          >
+            <i class="bi bi-person me-2"></i>
+            <span *ngIf="!collapsed">Profile</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="mt-auto">
+        <a
+          class="nav-link text-white d-flex align-items-center"
+          routerLink="/settings"
+          routerLinkActive="active"
+        >
+          <i class="bi bi-gear me-2"></i>
+          <span *ngIf="!collapsed">Settings</span>
+        </a>
+      </div>
+    </div>
+  `,
+  styles: [
+    `
+      .sidebar {
+        width: 250px;
+        height: 100%;
+        transition: all 0.3s;
+        overflow-x: hidden;
+      }
+
+      .sidebar.collapsed {
+        width: 60px;
+      }
+
+      .nav-link {
+        border-radius: 5px;
+        padding: 0.5rem 1rem;
+        transition: all 0.2s;
+      }
+
+      .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .nav-link.active {
+        background-color: var(--bs-primary);
+      }
+
+      @media (max-width: 768px) {
+        .sidebar {
+          width: 60px;
+        }
+      }
+    `,
+  ],
+})
+export class SidebarComponent {
+  @Input() collapsed = false;
+
+  toggleSidebar() {
+    this.collapsed = !this.collapsed;
+  }
+}
