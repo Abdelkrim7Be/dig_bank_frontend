@@ -1,13 +1,14 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { MainLayoutComponent } from './layout/main-layout/main-layout.component';
+import { SharedModule } from './shared/shared.module';
 
 @Component({
   selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.scss'],
   standalone: true,
-  imports: [RouterOutlet, MainLayoutComponent],
-  template: `<app-main-layout></app-main-layout>`,
+  imports: [RouterOutlet, SharedModule],
 })
 export class AppComponent {
-  title = 'dig_bank_frontend';
+  title = 'Digital Banking';
 }
