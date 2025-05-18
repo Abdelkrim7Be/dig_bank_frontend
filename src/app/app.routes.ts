@@ -62,7 +62,13 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'products',
+    loadComponent: () =>
+      import('./products/products.component').then((c) => c.ProductsComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: '**',
-    redirectTo: 'home', // Later this will point to a NotFoundComponent
+    redirectTo: 'home',
   },
 ];

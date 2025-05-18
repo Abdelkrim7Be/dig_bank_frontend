@@ -65,6 +65,16 @@ import { CommonModule } from '@angular/common';
         <li class="nav-item">
           <a
             class="nav-link text-white d-flex align-items-center"
+            routerLink="/products"
+            routerLinkActive="active"
+          >
+            <i class="bi bi-box-seam me-2"></i>
+            <span *ngIf="!collapsed">Products</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link text-white d-flex align-items-center"
             routerLink="/profile"
             routerLinkActive="active"
           >
