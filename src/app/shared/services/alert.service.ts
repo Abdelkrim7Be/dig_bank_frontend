@@ -1,12 +1,10 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 
-export type AlertType = 'success' | 'error' | 'info' | 'warning';
-
 export interface Alert {
-  type: AlertType;
+  id: string;
+  type: 'success' | 'info' | 'warning' | 'danger';
   message: string;
-  id?: string;
   autoClose?: boolean;
   keepAfterRouteChange?: boolean;
 }
@@ -15,53 +13,54 @@ export interface Alert {
   providedIn: 'root',
 })
 export class AlertService {
-  private subject = new BehaviorSubject<Alert[]>([]);
-  private defaultId = 'default-alert';
-  private autoCloseTimeout = 5000; // 5 seconds
+  private alertSubject = new BehaviorSubject<Alert[]>([]);
+  public alerts$: Observable<Alert[]> = this.alertSubject.asObservable();
 
-  // Enable subscribing to alerts observable
-  onAlert(id = this.defaultId): Observable<Alert[]> {
-    return this.subject.asObservable();
-  }
+  constructor() {}
 
-  // Convenience methods for different alert types
-  success(message: string, options?: any): void {
+  success(message: string, options: Partial<Alert> = {}): void {
     this.alert({ ...options, type: 'success', message });
   }
 
-  error(message: string, options?: any): void {
-    this.alert({ ...options, type: 'error', message });
+  error(message: string, options: Partial<Alert> = {}): void {
+    this.alert({ ...options, type: 'danger', message });
   }
 
-  info(message: string, options?: any): void {
+  info(message: string, options: Partial<Alert> = {}): void {
     this.alert({ ...options, type: 'info', message });
   }
 
-  warning(message: string, options?: any): void {
+  warning(message: string, options: Partial<Alert> = {}): void {
     this.alert({ ...options, type: 'warning', message });
   }
 
-  // Main alert method
-  alert(alert: Alert): void {
-    alert.id = alert.id || this.defaultId;
-    alert.autoClose = alert.autoClose !== false;
+  alert(alert: Partial<Alert>): void {
+    const newAlert: Alert = {
+      id: this.generateId(),
+      type: alert.type || 'info',
+      message: alert.message || '',
+      autoClose: alert.autoClose !== false,
+      keepAfterRouteChange: alert.keepAfterRouteChange || false,
+    };
 
-    // Clear alerts with the same ID
-    this.clear(alert.id);
+    this.alertSubject.next([...this.alertSubject.value, newAlert]);
 
-    // Add alert to array
-    const currentAlerts = this.subject.value;
-    this.subject.next([...currentAlerts, alert]);
-
-    // Auto close alert if required
-    if (alert.autoClose) {
-      setTimeout(() => this.clear(alert.id), this.autoCloseTimeout);
+    if (newAlert.autoClose) {
+      setTimeout(() => this.removeAlert(newAlert), 5000);
     }
   }
 
-  // Clear alerts
-  clear(id = this.defaultId): void {
-    const currentAlerts = this.subject.value;
-    this.subject.next(currentAlerts.filter((x) => x.id !== id));
+  removeAlert(alert: Alert): void {
+    this.alertSubject.next(
+      this.alertSubject.value.filter((x) => x.id !== alert.id)
+    );
+  }
+
+  clear(): void {
+    this.alertSubject.next([]);
+  }
+
+  private generateId(): string {
+    return Date.now().toString();
   }
 }

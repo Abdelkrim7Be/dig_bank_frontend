@@ -7,7 +7,7 @@ import {
   CreateProductDto,
   UpdateProductDto,
 } from './models/product.model';
-import { RouterLink } from '@angular/router';
+// Removed RouterLink since it's not used
 import { ProductFormComponent } from './product-form/product-form.component';
 
 @Component({
@@ -17,7 +17,7 @@ import { ProductFormComponent } from './product-form/product-form.component';
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    RouterLink,
+    // Removed RouterLink
     ProductFormComponent,
   ],
   templateUrl: './products.component.html',

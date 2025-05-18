@@ -167,6 +167,13 @@ export class LoginComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // Check if redirected due to expired session
+    this.route.queryParams.subscribe((params) => {
+      if (params['expired'] === 'true') {
+        this.errorMessage = 'Your session has expired. Please log in again.';
+      }
+    });
+
     this.initializeForm();
     // Get return url from route parameters or default to '/dashboard'
     this.returnUrl =

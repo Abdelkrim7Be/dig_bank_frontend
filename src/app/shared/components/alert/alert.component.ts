@@ -2,9 +2,12 @@ import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationStart } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { Alert, AlertService } from '../../services/alert.service';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-alert',
+  standalone: true,
+  imports: [CommonModule],
   templateUrl: './alert.component.html',
   styleUrls: ['./alert.component.scss'],
 })

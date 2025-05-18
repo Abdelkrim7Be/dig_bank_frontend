@@ -5,63 +5,57 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./home/home.component').then((c) => c.HomeComponent),
+      import('./home/home.component').then((m) => m.HomeComponent),
   },
   {
     path: 'login',
     loadComponent: () =>
-      import('./auth/login/login.component').then((c) => c.LoginComponent),
+      import('./auth/login/login.component').then((m) => m.LoginComponent),
   },
   {
     path: 'register',
     loadComponent: () =>
       import('./auth/register/register.component').then(
-        (c) => c.RegisterComponent
+        (m) => m.RegisterComponent
       ),
   },
   {
     path: 'dashboard',
     loadComponent: () =>
       import('./dashboard/dashboard.component').then(
-        (c) => c.DashboardComponent
+        (m) => m.DashboardComponent
       ),
-    // canActivate: [authGuard]
   },
   {
     path: 'users',
     loadComponent: () =>
-      import('./users/users.component').then((c) => c.UsersComponent),
-    // canActivate: [authGuard]
+      import('./users/users.component').then((m) => m.UsersComponent),
   },
   {
     path: 'users/new',
     loadComponent: () =>
       import('./users/user-form/user-form.component').then(
-        (c) => c.UserFormComponent
+        (m) => m.UserFormComponent
       ),
-    // canActivate: [authGuard]
   },
   {
     path: 'users/:id/edit',
     loadComponent: () =>
       import('./users/user-form/user-form.component').then(
-        (c) => c.UserFormComponent
+        (m) => m.UserFormComponent
       ),
-    // canActivate: [authGuard]
   },
   {
     path: 'users/:id/view',
     loadComponent: () =>
       import('./users/user-detail/user-detail.component').then(
-        (c) => c.UserDetailComponent
+        (m) => m.UserDetailComponent
       ),
-    // canActivate: [authGuard]
   },
   {
     path: 'products',
     loadComponent: () =>
-      import('./products/products.component').then((c) => c.ProductsComponent),
-    // canActivate: [authGuard]
+      import('./products/products.component').then((m) => m.ProductsComponent),
   },
   // Wildcard route for 404 - must be the last route
   { path: '**', component: NotFoundComponent },
