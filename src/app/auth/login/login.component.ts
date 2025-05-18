@@ -1,43 +1,184 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss'],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  template: `
+    <div class="container">
+      <div class="row justify-content-center mt-5">
+        <div class="col-md-6">
+          <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+              <h3 class="mb-0">Login to Your Account</h3>
+            </div>
+            <div class="card-body p-4">
+              <!-- Error Alert -->
+              <div
+                *ngIf="errorMessage"
+                class="alert alert-danger alert-dismissible fade show"
+                role="alert"
+              >
+                {{ errorMessage }}
+                <button
+                  type="button"
+                  class="btn-close"
+                  (click)="errorMessage = ''"
+                  aria-label="Close"
+                ></button>
+              </div>
+
+              <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                <!-- Email Field -->
+                <div class="mb-3">
+                  <label for="email" class="form-label">Email address</label>
+                  <input
+                    type="email"
+                    id="email"
+                    formControlName="email"
+                    class="form-control"
+                    [ngClass]="{
+                      'is-invalid':
+                        email?.invalid && (email?.dirty || email?.touched)
+                    }"
+                    placeholder="Enter your email"
+                  />
+                  <div
+                    *ngIf="email?.invalid && (email?.dirty || email?.touched)"
+                    class="invalid-feedback"
+                  >
+                    <div *ngIf="email?.errors?.['required']">
+                      Email is required
+                    </div>
+                    <div *ngIf="email?.errors?.['email']">
+                      Please enter a valid email address
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Password Field -->
+                <div class="mb-4">
+                  <label for="password" class="form-label">Password</label>
+                  <input
+                    type="password"
+                    id="password"
+                    formControlName="password"
+                    class="form-control"
+                    [ngClass]="{
+                      'is-invalid':
+                        password?.invalid &&
+                        (password?.dirty || password?.touched)
+                    }"
+                    placeholder="Enter your password"
+                  />
+                  <div
+                    *ngIf="
+                      password?.invalid &&
+                      (password?.dirty || password?.touched)
+                    "
+                    class="invalid-feedback"
+                  >
+                    <div *ngIf="password?.errors?.['required']">
+                      Password is required
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Remember Me -->
+                <div class="mb-3 form-check">
+                  <input
+                    type="checkbox"
+                    class="form-check-input"
+                    id="rememberMe"
+                    formControlName="rememberMe"
+                  />
+                  <label class="form-check-label" for="rememberMe"
+                    >Remember me</label
+                  >
+                </div>
+
+                <!-- Submit Button -->
+                <div class="d-grid">
+                  <button
+                    type="submit"
+                    class="btn btn-primary btn-lg"
+                    [disabled]="loginForm.invalid || isLoading"
+                  >
+                    {{ isLoading ? 'Logging in...' : 'Login' }}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card-footer bg-light p-3 text-center">
+              <p class="mb-0">
+                Don't have an account?
+                <a routerLink="/register" class="text-primary">Register here</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [
+    `
+      .card {
+        border-radius: 10px;
+        overflow: hidden;
+        border: none;
+      }
+
+      .card-header {
+        border-bottom: 0;
+      }
+
+      .btn-primary {
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+    `,
+  ],
 })
 export class LoginComponent implements OnInit {
   loginForm!: FormGroup;
-  errorMessage: string | null = null;
-  isSubmitting = false;
+  isLoading = false;
+  errorMessage = '';
+  returnUrl: string = '/dashboard';
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
-    // Initialize the login form
+    this.initializeForm();
+    // Get return url from route parameters or default to '/dashboard'
+    this.returnUrl =
+      this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+  }
+
+  private initializeForm(): void {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
+      password: ['', [Validators.required]],
+      rememberMe: [false],
     });
-
-    // Redirect to dashboard if already logged in
-    if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/dashboard']);
-    }
   }
 
   onSubmit(): void {
@@ -45,27 +186,34 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    this.isSubmitting = true;
-    this.errorMessage = null;
+    this.isLoading = true;
+    this.errorMessage = '';
 
     const { email, password } = this.loginForm.value;
 
-    this.authService.login(email, password).subscribe({
-      next: () => {
-        this.isSubmitting = false;
-        this.router.navigate(['/dashboard']);
-      },
-      error: (error) => {
-        this.isSubmitting = false;
-        this.errorMessage = error.message || 'Login failed. Please try again.';
-      },
-    });
+    // Temporary implementation until backend is connected
+    setTimeout(() => {
+      this.isLoading = false;
+      this.router.navigate([this.returnUrl]);
+
+      // Real implementation would be:
+      // this.authService.login({ email, password }).subscribe({
+      //   next: () => {
+      //     this.router.navigate([this.returnUrl]);
+      //   },
+      //   error: (error) => {
+      //     this.errorMessage = error.message || 'Login failed. Please check your credentials.';
+      //     this.isLoading = false;
+      //   }
+      // });
+    }, 1500);
   }
 
-  // Helper methods for form validation
+  // Getter methods for form controls
   get email() {
     return this.loginForm.get('email');
   }
+
   get password() {
     return this.loginForm.get('password');
   }
