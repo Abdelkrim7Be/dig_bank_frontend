@@ -52,6 +52,35 @@ export const routes: Routes = [
         (m) => m.UserDetailComponent
       ),
   },
+  // Customer routes
+  {
+    path: 'customers',
+    loadComponent: () =>
+      import('./customers/customers.component').then(
+        (m) => m.CustomersComponent
+      ),
+  },
+  {
+    path: 'customers/new',
+    loadComponent: () =>
+      import('./customers/customer-form/customer-form.component').then(
+        (m) => m.CustomerFormComponent
+      ),
+  },
+  {
+    path: 'customers/:id/edit',
+    loadComponent: () =>
+      import('./customers/customer-form/customer-form.component').then(
+        (m) => m.CustomerFormComponent
+      ),
+  },
+  {
+    path: 'customers/:id/view',
+    loadComponent: () =>
+      import('./customers/customer-detail/customer-detail.component').then(
+        (m) => m.CustomerDetailComponent
+      ),
+  },
   {
     path: 'products',
     loadComponent: () =>
