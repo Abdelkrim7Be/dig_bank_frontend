@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { tap, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import {
   Account,
@@ -92,21 +93,60 @@ export class AccountService {
     let params = new HttpParams();
 
     if (filter) {
-      if (filter.accountId)
-        params = params.set('accountId', filter.accountId.toString());
-      if (filter.type) params = params.set('type', filter.type);
-      if (filter.status) params = params.set('status', filter.status);
-      if (filter.startDate) params = params.set('startDate', filter.startDate);
-      if (filter.endDate) params = params.set('endDate', filter.endDate);
-      if (filter.minAmount)
+      if (filter.accountId !== undefined && filter.accountId !== null) {
+        // Handle both string and number accountIds
+        const accountIdStr =
+          typeof filter.accountId === 'string'
+            ? filter.accountId.trim()
+            : filter.accountId.toString();
+
+        // Only add parameter if the trimmed string is not empty
+        if (accountIdStr.trim() !== '') {
+          params = params.set('accountId', accountIdStr);
+        }
+      }
+      if (filter.type) {
+        const typeStr =
+          typeof filter.type === 'string'
+            ? filter.type.trim()
+            : String(filter.type);
+        if (typeStr !== '') {
+          params = params.set('type', typeStr);
+        }
+      }
+      if (filter.status) {
+        const statusStr =
+          typeof filter.status === 'string'
+            ? filter.status.trim()
+            : String(filter.status);
+        if (statusStr !== '') {
+          params = params.set('status', statusStr);
+        }
+      }
+      if (filter.startDate && filter.startDate.trim() !== '') {
+        params = params.set('startDate', filter.startDate.trim());
+      }
+      if (filter.endDate && filter.endDate.trim() !== '') {
+        params = params.set('endDate', filter.endDate.trim());
+      }
+      if (filter.minAmount !== undefined && filter.minAmount !== null) {
         params = params.set('minAmount', filter.minAmount.toString());
-      if (filter.maxAmount)
+      }
+      if (filter.maxAmount !== undefined && filter.maxAmount !== null) {
         params = params.set('maxAmount', filter.maxAmount.toString());
-      if (filter.page) params = params.set('page', filter.page.toString());
-      if (filter.size) params = params.set('size', filter.size.toString());
-      if (filter.sortBy) params = params.set('sortBy', filter.sortBy);
-      if (filter.sortDirection)
+      }
+      if (filter.page !== undefined && filter.page !== null) {
+        params = params.set('page', filter.page.toString());
+      }
+      if (filter.size !== undefined && filter.size !== null) {
+        params = params.set('size', filter.size.toString());
+      }
+      if (filter.sortBy && filter.sortBy.trim() !== '') {
+        params = params.set('sortBy', filter.sortBy.trim());
+      }
+      if (filter.sortDirection) {
         params = params.set('sortDirection', filter.sortDirection);
+      }
     }
 
     // Determine the correct endpoint based on user role
@@ -124,8 +164,52 @@ export class AccountService {
 
     console.log('getTransactions - User role:', currentUser?.role);
     console.log('getTransactions - Using endpoint:', endpoint);
+    console.log('getTransactions - Parameters:', params.toString());
+    console.log(
+      'getTransactions - Full URL:',
+      `${endpoint}?${params.toString()}`
+    );
 
-    return this.http.get<PagedResponse<Transaction>>(endpoint, { params });
+    return this.http.get<PagedResponse<Transaction>>(endpoint, { params }).pipe(
+      tap((response) => {
+        console.log('getTransactions - Success response:', response);
+      }),
+      catchError((error) => {
+        console.error('getTransactions - Error details:', {
+          status: error.status,
+          statusText: error.statusText,
+          url: error.url,
+          error: error.error,
+          message: error.message,
+        });
+
+        // Log backend error details if available
+        if (error.error) {
+          console.error('getTransactions - Backend error:', error.error);
+          if (error.error.message) {
+            console.error(
+              'getTransactions - Backend message:',
+              error.error.message
+            );
+          }
+          if (error.error.details) {
+            console.error(
+              'getTransactions - Backend details:',
+              error.error.details
+            );
+          }
+          if (error.error.trace) {
+            console.error(
+              'getTransactions - Backend stack trace:',
+              error.error.trace
+            );
+          }
+        }
+
+        // Re-throw the error for component handling
+        return throwError(() => error);
+      })
+    );
   }
 
   getTransactionById(id: number): Observable<Transaction> {

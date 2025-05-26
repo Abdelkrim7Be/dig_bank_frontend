@@ -122,9 +122,9 @@ export interface WithdrawalRequest {
 }
 
 export interface TransactionFilter {
-  accountId?: number;
-  type?: TransactionType;
-  status?: TransactionStatus;
+  accountId?: string | number; // Support both string UUIDs and numeric IDs
+  type?: TransactionType | string; // Support both enum and string values
+  status?: TransactionStatus | string; // Support both enum and string values
   startDate?: string;
   endDate?: string;
   minAmount?: number;

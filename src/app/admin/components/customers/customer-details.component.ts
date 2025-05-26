@@ -157,10 +157,18 @@ import { User } from '../../../auth/models/auth.model';
                   </div>
                   <hr />
                   <div class="d-grid gap-2">
-                    <button class="btn btn-outline-primary btn-sm">
+                    <button
+                      class="btn btn-outline-primary btn-sm"
+                      routerLink="/admin/accounts"
+                      [queryParams]="{ customerId: customer.id }"
+                    >
                       <i class="bi bi-credit-card me-2"></i>View Accounts
                     </button>
-                    <button class="btn btn-outline-info btn-sm">
+                    <button
+                      class="btn btn-outline-info btn-sm"
+                      routerLink="/admin/transactions"
+                      [queryParams]="{ customerId: customer.id }"
+                    >
                       <i class="bi bi-clock-history me-2"></i>Transaction
                       History
                     </button>
@@ -179,7 +187,11 @@ import { User } from '../../../auth/models/auth.model';
                     class="d-flex justify-content-between align-items-center"
                   >
                     <h5 class="card-title mb-0">Bank Accounts</h5>
-                    <button class="btn btn-primary btn-sm">
+                    <button
+                      class="btn btn-primary btn-sm"
+                      routerLink="/admin/accounts/new"
+                      [queryParams]="{ customerId: customer.id }"
+                    >
                       <i class="bi bi-plus-circle me-2"></i>Add Account
                     </button>
                   </div>
@@ -223,12 +235,14 @@ import { User } from '../../../auth/models/auth.model';
                             <div class="btn-group btn-group-sm">
                               <button
                                 class="btn btn-outline-primary"
+                                [routerLink]="['/admin/accounts', account.id]"
                                 title="View Details"
                               >
                                 <i class="bi bi-eye"></i>
                               </button>
                               <button
                                 class="btn btn-outline-secondary"
+                                (click)="editAccount(account)"
                                 title="Edit"
                               >
                                 <i class="bi bi-pencil"></i>
@@ -248,7 +262,11 @@ import { User } from '../../../auth/models/auth.model';
                     <p class="text-muted mt-3">
                       No bank accounts found for this customer.
                     </p>
-                    <button class="btn btn-primary">
+                    <button
+                      class="btn btn-primary"
+                      routerLink="/admin/accounts/new"
+                      [queryParams]="{ customerId: customer.id }"
+                    >
                       <i class="bi bi-plus-circle me-2"></i>Create First Account
                     </button>
                   </div>
@@ -311,9 +329,13 @@ export class AdminCustomerDetailsComponent implements OnInit {
 
     this.customerId = parseInt(id, 10);
     this.loading = true;
+    this.error = null;
+
+    console.log('Loading customer details for ID:', this.customerId);
 
     this.customerService.getCustomerById(this.customerId).subscribe({
       next: (customer) => {
+        console.log('Customer details loaded successfully:', customer);
         this.customer = {
           ...customer,
           accountCount: 0,
@@ -322,8 +344,26 @@ export class AdminCustomerDetailsComponent implements OnInit {
         this.loadCustomerAccounts();
       },
       error: (err) => {
-        this.error = 'Failed to load customer details';
-        console.error('Error loading customer:', err);
+        console.error('Error loading customer details:', err);
+
+        // Enhanced error handling
+        let errorMessage = 'Failed to load customer details';
+
+        if (err.status === 0) {
+          errorMessage =
+            'Unable to connect to server. Please check your connection.';
+        } else if (err.status === 404) {
+          errorMessage = 'Customer not found.';
+        } else if (err.status === 403) {
+          errorMessage = 'You do not have permission to view this customer.';
+        } else if (err.status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (err.message && err.message.includes('parsing')) {
+          errorMessage =
+            'Server returned invalid data. The customer service will attempt to fix this automatically.';
+        }
+
+        this.error = errorMessage;
         this.loading = false;
       },
     });
@@ -398,7 +438,69 @@ export class AdminCustomerDetailsComponent implements OnInit {
         },
         error: (err) => {
           console.error('Error updating customer status:', err);
-          alert('Failed to update customer status. Please try again.');
+          console.error('Error details:', {
+            status: err.status,
+            statusText: err.statusText,
+            url: err.url,
+            error: err.error,
+          });
+
+          // Log validation errors specifically
+          if (err.error && err.error.errors) {
+            console.error('Validation errors:', err.error.errors);
+          }
+
+          let errorMessage =
+            'Failed to update customer status. Please try again.';
+
+          if (err.status === 0) {
+            errorMessage =
+              'Connection error. The backend server may not be running or there may be a CORS issue. Please check the server status.';
+          } else if (err.status === 400) {
+            if (err.error && err.error.errors) {
+              // Format validation errors
+              const validationErrors = err.error.errors;
+              let errorMessages: string[] = [];
+
+              Object.keys(validationErrors).forEach((field) => {
+                const fieldErrors = validationErrors[field];
+                if (Array.isArray(fieldErrors)) {
+                  fieldErrors.forEach((error) => {
+                    errorMessages.push(
+                      `• ${this.formatFieldName(field)}: ${error}`
+                    );
+                  });
+                } else {
+                  errorMessages.push(
+                    `• ${this.formatFieldName(field)}: ${fieldErrors}`
+                  );
+                }
+              });
+
+              if (errorMessages.length > 0) {
+                errorMessage = `Validation errors:\n${errorMessages.join(
+                  '\n'
+                )}`;
+              } else {
+                errorMessage =
+                  err.error.message ||
+                  'Invalid request. Please check the customer data.';
+              }
+            } else if (err.error && err.error.message) {
+              errorMessage = `Bad request: ${err.error.message}`;
+            } else {
+              errorMessage = 'Invalid request. Please check the customer data.';
+            }
+          } else if (err.status === 403) {
+            errorMessage =
+              'You do not have permission to update customer status.';
+          } else if (err.status === 404) {
+            errorMessage = 'Customer not found.';
+          } else if (err.status === 500) {
+            errorMessage = 'Server error. Please try again later.';
+          }
+
+          alert(errorMessage);
         },
       });
   }
@@ -439,5 +541,18 @@ export class AdminCustomerDetailsComponent implements OnInit {
       default:
         return 'bg-secondary';
     }
+  }
+
+  editAccount(account: any): void {
+    // Navigate to account edit page (if it exists) or show edit modal
+    this.router.navigate(['/admin/accounts', account.id, 'edit']);
+  }
+
+  private formatFieldName(field: string): string {
+    // Convert camelCase to readable format
+    return field
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, (str) => str.toUpperCase())
+      .trim();
   }
 }

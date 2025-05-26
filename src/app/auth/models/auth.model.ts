@@ -70,3 +70,16 @@ export interface ProfileUpdateRequest {
   lastName: string;
   email: string;
 }
+
+export interface CustomerUpdateRequest {
+  username: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  role?: UserRole;
+  name?: string;
+  phone?: string;
+  address?: string;
+  // Password is optional for updates
+  password?: string;
+}

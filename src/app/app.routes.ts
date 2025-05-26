@@ -69,18 +69,18 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'customers/:id',
-        loadComponent: () =>
-          import(
-            './admin/components/customers/customer-details.component'
-          ).then((m) => m.AdminCustomerDetailsComponent),
-      },
-      {
         path: 'customers/:id/edit',
         loadComponent: () =>
           import('./admin/components/customers/customer-form.component').then(
             (m) => m.AdminCustomerFormComponent
           ),
+      },
+      {
+        path: 'customers/:id',
+        loadComponent: () =>
+          import(
+            './admin/components/customers/customer-details.component'
+          ).then((m) => m.AdminCustomerDetailsComponent),
       },
       {
         path: 'accounts',
@@ -97,10 +97,17 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'accounts/:id/edit',
+        loadComponent: () =>
+          import('./admin/components/accounts/account-form.component').then(
+            (m) => m.AdminAccountFormComponent
+          ),
+      },
+      {
         path: 'accounts/:id',
         loadComponent: () =>
-          import('./admin/components/accounts/account-list.component').then(
-            (m) => m.AdminAccountListComponent
+          import('./admin/components/accounts/account-details.component').then(
+            (m) => m.AdminAccountDetailsComponent
           ),
       },
       {

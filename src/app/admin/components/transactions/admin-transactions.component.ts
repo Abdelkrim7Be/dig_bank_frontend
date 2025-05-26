@@ -109,17 +109,30 @@ import { InlineAlertComponent } from '../../../shared/components/inline-alert/in
         <div class="card-body">
           <div class="row g-3">
             <div class="col-md-3">
-              <label class="form-label">Account ID</label>
-              <input
-                type="text"
-                class="form-control"
+              <label class="form-label">Account</label>
+              <select
+                class="form-select"
                 [(ngModel)]="filter.accountId"
-                placeholder="Enter account ID"
-              />
+                (change)="applyFilters()"
+              >
+                <option value="">All Accounts</option>
+                <option
+                  *ngFor="let account of accountsForSelection"
+                  [value]="account.accountId"
+                >
+                  {{ account.customerUsername }} -
+                  {{ account.customerName }} ({{ account.accountType }}:
+                  {{ account.balance | currency : 'USD' : 'symbol' : '1.2-2' }})
+                </option>
+              </select>
             </div>
             <div class="col-md-3">
               <label class="form-label">Transaction Type</label>
-              <select class="form-select" [(ngModel)]="filter.type">
+              <select
+                class="form-select"
+                [(ngModel)]="filter.type"
+                (change)="applyFilters()"
+              >
                 <option value="">All Types</option>
                 <option value="DEPOSIT">Add Money</option>
                 <option value="WITHDRAWAL">Debit</option>
@@ -132,6 +145,7 @@ import { InlineAlertComponent } from '../../../shared/components/inline-alert/in
                 type="date"
                 class="form-control"
                 [(ngModel)]="filter.startDate"
+                (change)="applyFilters()"
               />
             </div>
             <div class="col-md-2">
@@ -140,6 +154,7 @@ import { InlineAlertComponent } from '../../../shared/components/inline-alert/in
                 type="date"
                 class="form-control"
                 [(ngModel)]="filter.endDate"
+                (change)="applyFilters()"
               />
             </div>
             <div class="col-md-2 d-flex align-items-end">
@@ -177,13 +192,31 @@ import { InlineAlertComponent } from '../../../shared/components/inline-alert/in
             [message]="error"
           ></app-inline-alert>
 
+          <!-- Emergency fallback button -->
+          <div *ngIf="error && !loading" class="text-center p-3">
+            <button
+              class="btn btn-outline-primary me-2"
+              (click)="loadTransactionsWithoutFilters()"
+            >
+              <i class="bi bi-arrow-clockwise me-2"></i>
+              Try Loading Without Filters
+            </button>
+            <button
+              class="btn btn-outline-info"
+              (click)="showBackendTroubleshooting()"
+            >
+              <i class="bi bi-info-circle me-2"></i>
+              Backend Troubleshooting
+            </button>
+          </div>
+
           <div *ngIf="!loading && !error" class="table-responsive">
             <table class="table table-hover mb-0">
               <thead class="table-light">
                 <tr>
                   <th>ID</th>
                   <th>Customer</th>
-                  <th>Account ID</th>
+                  <th>Account</th>
                   <th>Type</th>
                   <th>Amount</th>
                   <th>Description</th>
@@ -201,7 +234,14 @@ import { InlineAlertComponent } from '../../../shared/components/inline-alert/in
                     </div>
                   </td>
                   <td>
-                    <code>{{ transaction.accountId }}</code>
+                    <div class="d-flex flex-column">
+                      <span class="fw-semibold">{{
+                        getAccountDisplayName(transaction.accountId)
+                      }}</span>
+                      <small class="text-muted"
+                        >ID: {{ transaction.accountId }}</small
+                      >
+                    </div>
                   </td>
                   <td>
                     <span
@@ -458,7 +498,7 @@ export class AdminTransactionsComponent implements OnInit {
     page: 0,
     size: 20,
     sortBy: 'operationDate',
-    sortDirection: 'desc',
+    sortDirection: 'desc' as 'desc',
   };
 
   Math = Math;
@@ -496,16 +536,55 @@ export class AdminTransactionsComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
+    console.log(
+      'AdminTransactionsComponent.loadTransactions() - Filter:',
+      this.filter
+    );
+
     this.accountService.getTransactions(this.filter).subscribe({
       next: (response) => {
+        console.log(
+          'AdminTransactionsComponent.loadTransactions() - Success:',
+          response
+        );
         this.pagedResponse = response;
         this.transactions = response.content;
         this.loading = false;
       },
       error: (error) => {
-        this.error = 'Failed to load transactions. Please try again.';
+        console.error(
+          'AdminTransactionsComponent.loadTransactions() - Error:',
+          error
+        );
+        console.error('Error details:', {
+          status: error.status,
+          statusText: error.statusText,
+          url: error.url,
+          error: error.error,
+        });
+
+        let errorMessage = 'Failed to load transactions. Please try again.';
+
+        if (error.status === 500) {
+          errorMessage =
+            'Server error while loading transactions. This may be due to invalid filter parameters or backend issues.';
+
+          // Try automatic fallback for 500 errors
+          console.log(
+            'AdminTransactionsComponent - Attempting automatic fallback due to 500 error'
+          );
+          this.tryFallbackWithoutProblematicFilters();
+          return; // Don't set error state yet, let fallback try first
+        } else if (error.status === 400) {
+          errorMessage =
+            'Invalid request parameters. Please check your filter settings.';
+        } else if (error.status === 0) {
+          errorMessage =
+            'Connection error. Please check if the server is running.';
+        }
+
+        this.error = errorMessage;
         this.loading = false;
-        console.error('Error loading transactions:', error);
       },
     });
   }
@@ -516,13 +595,191 @@ export class AdminTransactionsComponent implements OnInit {
   }
 
   clearFilters(): void {
+    console.log(
+      'AdminTransactionsComponent.clearFilters() - Clearing all filters'
+    );
     this.filter = {
       page: 0,
       size: 20,
       sortBy: 'operationDate',
-      sortDirection: 'desc',
+      sortDirection: 'desc' as 'desc',
     };
     this.loadTransactions();
+  }
+
+  // Emergency fallback to load transactions without any filters
+  loadTransactionsWithoutFilters(): void {
+    console.log(
+      'AdminTransactionsComponent.loadTransactionsWithoutFilters() - Loading without filters'
+    );
+    this.loading = true;
+    this.error = '';
+
+    const basicFilter: TransactionFilter = {
+      page: 0,
+      size: 20,
+      sortBy: 'operationDate',
+      sortDirection: 'desc' as 'desc',
+    };
+
+    this.accountService.getTransactions(basicFilter).subscribe({
+      next: (response) => {
+        console.log(
+          'AdminTransactionsComponent.loadTransactionsWithoutFilters() - Success:',
+          response
+        );
+        this.pagedResponse = response;
+        this.transactions = response.content;
+        this.loading = false;
+        // Reset filter to working state
+        this.filter = basicFilter;
+      },
+      error: (error) => {
+        console.error(
+          'AdminTransactionsComponent.loadTransactionsWithoutFilters() - Error:',
+          error
+        );
+        this.error =
+          'Failed to load transactions even without filters. Please check the backend server.';
+        this.loading = false;
+      },
+    });
+  }
+
+  // Try fallback approaches when 500 error occurs
+  tryFallbackWithoutProblematicFilters(): void {
+    console.log(
+      'AdminTransactionsComponent.tryFallbackWithoutProblematicFilters() - Starting fallback sequence'
+    );
+
+    // Step 1: Try without accountId filter (most likely to cause issues)
+    if (this.filter.accountId) {
+      console.log(
+        'AdminTransactionsComponent - Fallback Step 1: Removing accountId filter'
+      );
+      const fallbackFilter1 = { ...this.filter };
+      delete fallbackFilter1.accountId;
+
+      this.accountService.getTransactions(fallbackFilter1).subscribe({
+        next: (response) => {
+          console.log('AdminTransactionsComponent - Fallback Step 1 Success');
+          this.pagedResponse = response;
+          this.transactions = response.content;
+          this.loading = false;
+          this.showFallbackWarning(
+            'Account filter was removed due to backend compatibility issues.'
+          );
+        },
+        error: () => {
+          console.log(
+            'AdminTransactionsComponent - Fallback Step 1 Failed, trying Step 2'
+          );
+          this.tryFallbackWithoutTypeFilter();
+        },
+      });
+    } else {
+      this.tryFallbackWithoutTypeFilter();
+    }
+  }
+
+  private tryFallbackWithoutTypeFilter(): void {
+    console.log(
+      'AdminTransactionsComponent - Fallback Step 2: Removing type filter'
+    );
+    const fallbackFilter2 = { ...this.filter };
+    delete fallbackFilter2.accountId;
+    delete fallbackFilter2.type;
+
+    this.accountService.getTransactions(fallbackFilter2).subscribe({
+      next: (response) => {
+        console.log('AdminTransactionsComponent - Fallback Step 2 Success');
+        this.pagedResponse = response;
+        this.transactions = response.content;
+        this.loading = false;
+        this.showFallbackWarning(
+          'Account and type filters were removed due to backend compatibility issues.'
+        );
+      },
+      error: () => {
+        console.log(
+          'AdminTransactionsComponent - Fallback Step 2 Failed, trying Step 3'
+        );
+        this.tryFallbackWithoutDateFilters();
+      },
+    });
+  }
+
+  private tryFallbackWithoutDateFilters(): void {
+    console.log(
+      'AdminTransactionsComponent - Fallback Step 3: Removing date filters'
+    );
+    const fallbackFilter3 = { ...this.filter };
+    delete fallbackFilter3.accountId;
+    delete fallbackFilter3.type;
+    delete fallbackFilter3.startDate;
+    delete fallbackFilter3.endDate;
+
+    this.accountService.getTransactions(fallbackFilter3).subscribe({
+      next: (response) => {
+        console.log('AdminTransactionsComponent - Fallback Step 3 Success');
+        this.pagedResponse = response;
+        this.transactions = response.content;
+        this.loading = false;
+        this.showFallbackWarning(
+          'Multiple filters were removed due to backend compatibility issues.'
+        );
+      },
+      error: () => {
+        console.log(
+          'AdminTransactionsComponent - All fallbacks failed, using basic filter'
+        );
+        this.loadTransactionsWithoutFilters();
+      },
+    });
+  }
+
+  private showFallbackWarning(message: string): void {
+    this.successMessage = `⚠️ Partial Success: ${message} Some transactions are displayed but filters may not be fully applied.`;
+
+    // Auto-hide the warning after 10 seconds
+    setTimeout(() => {
+      this.successMessage = '';
+    }, 10000);
+  }
+
+  showBackendTroubleshooting(): void {
+    const troubleshootingMessage = `🔧 Backend Troubleshooting Guide
+
+The transaction filtering is failing with a 500 server error. This typically indicates:
+
+📋 COMMON ISSUES:
+• Backend doesn't support the accountId parameter format (UUID vs numeric)
+• Transaction type values don't match backend expectations
+• Date format incompatibility
+• Missing database indexes causing timeouts
+• Backend validation errors
+
+🔍 DEBUGGING STEPS:
+1. Check backend logs for detailed error messages
+2. Verify the /api/admin/transactions endpoint exists
+3. Test the endpoint directly with Postman/curl
+4. Check if accountId should be numeric instead of UUID
+5. Verify transaction type enum values match backend
+
+📝 CURRENT REQUEST:
+URL: ${window.location.origin}/api/admin/transactions
+Parameters: ${JSON.stringify(this.filter, null, 2)}
+
+🛠️ BACKEND FIXES NEEDED:
+• Ensure AdminTransactionController handles UUID accountIds
+• Add proper error handling and validation
+• Check database query performance
+• Verify parameter mapping in Spring Boot
+
+💡 QUICK TEST:
+Try the "Load Without Filters" button to see if basic endpoint works.`;
+
+    alert(troubleshootingMessage);
   }
 
   goToPage(page: number): void {
@@ -643,6 +900,16 @@ export class AdminTransactionsComponent implements OnInit {
       return transaction.performedBy;
     }
     return 'Unknown Customer';
+  }
+
+  getAccountDisplayName(accountId: string): string {
+    const account = this.accountsForSelection.find(
+      (acc) => acc.accountId === accountId
+    );
+    if (account) {
+      return `${account.customerUsername} - ${account.customerName} (${account.accountType})`;
+    }
+    return `Account ${accountId}`;
   }
 
   getTransactionTypeBadge(type: string): string {

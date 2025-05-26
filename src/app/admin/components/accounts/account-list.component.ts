@@ -2,7 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { AdminAccountService, BankAccount, AccountSearchParams } from '../../services/account.service';
+import {
+  AdminAccountService,
+  BankAccount,
+  AccountSearchParams,
+} from '../../services/account.service';
 
 @Component({
   selector: 'app-admin-account-list',
@@ -13,7 +17,9 @@ import { AdminAccountService, BankAccount, AccountSearchParams } from '../../ser
       <div class="row">
         <div class="col-12">
           <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div
+              class="card-header d-flex justify-content-between align-items-center"
+            >
               <h5 class="mb-0">Account Management</h5>
               <button
                 type="button"
@@ -108,8 +114,8 @@ import { AdminAccountService, BankAccount, AccountSearchParams } from '../../ser
                         No accounts found
                       </td>
                     </tr>
-                    } @else {
-                    @for (account of paginatedAccounts; track account.id) {
+                    } @else { @for (account of paginatedAccounts; track
+                    account.id) {
                     <tr>
                       <td>
                         <code class="text-primary">{{ account.id }}</code>
@@ -187,36 +193,59 @@ import { AdminAccountService, BankAccount, AccountSearchParams } from '../../ser
                             </button>
                             <ul
                               class="dropdown-menu"
-                              [attr.aria-labelledby]="'statusDropdown' + account.id"
+                              [attr.aria-labelledby]="
+                                'statusDropdown' + account.id
+                              "
                             >
                               <li>
                                 <button
                                   class="dropdown-item"
-                                  (click)="updateAccountStatus(account, 'ACTIVATED')"
+                                  (click)="
+                                    updateAccountStatus(account, 'ACTIVATED')
+                                  "
                                   [disabled]="account.status === 'ACTIVATED'"
                                 >
-                                  <i class="fas fa-check-circle text-success me-2"></i>
+                                  <i
+                                    class="fas fa-check-circle text-success me-2"
+                                  ></i>
                                   Activate
                                 </button>
                               </li>
                               <li>
                                 <button
                                   class="dropdown-item"
-                                  (click)="updateAccountStatus(account, 'SUSPENDED')"
+                                  (click)="
+                                    updateAccountStatus(account, 'SUSPENDED')
+                                  "
                                   [disabled]="account.status === 'SUSPENDED'"
                                 >
-                                  <i class="fas fa-pause-circle text-warning me-2"></i>
+                                  <i
+                                    class="fas fa-pause-circle text-warning me-2"
+                                  ></i>
                                   Suspend
                                 </button>
                               </li>
                               <li>
                                 <button
                                   class="dropdown-item"
-                                  (click)="updateAccountStatus(account, 'CLOSED')"
+                                  (click)="closeAccount(account)"
                                   [disabled]="account.status === 'CLOSED'"
                                 >
-                                  <i class="fas fa-times-circle text-danger me-2"></i>
-                                  Close
+                                  <i
+                                    class="fas fa-times-circle text-danger me-2"
+                                  ></i>
+                                  Close Account
+                                </button>
+                              </li>
+                              <li><hr class="dropdown-divider" /></li>
+                              <li>
+                                <button
+                                  class="dropdown-item text-danger"
+                                  (click)="deleteAccount(account)"
+                                  [disabled]="account.status !== 'CLOSED'"
+                                >
+                                  <i class="fas fa-trash me-2"></i>
+                                  Delete Account
                                 </button>
                               </li>
                             </ul>
@@ -224,8 +253,7 @@ import { AdminAccountService, BankAccount, AccountSearchParams } from '../../ser
                         </div>
                       </td>
                     </tr>
-                    }
-                    }
+                    } }
                   </tbody>
                 </table>
               </div>
@@ -245,10 +273,7 @@ import { AdminAccountService, BankAccount, AccountSearchParams } from '../../ser
                   </li>
 
                   @for (page of getVisiblePages(); track page) {
-                  <li
-                    class="page-item"
-                    [class.active]="page === currentPage"
-                  >
+                  <li class="page-item" [class.active]="page === currentPage">
                     <button class="page-link" (click)="goToPage(page)">
                       {{ page }}
                     </button>
@@ -454,5 +479,64 @@ export class AdminAccountListComponent implements OnInit {
         console.error('Error exporting accounts:', err);
       },
     });
+  }
+
+  closeAccount(account: BankAccount): void {
+    const confirmMessage = `Are you sure you want to close this account?
+
+Account: ${account.id}
+Customer: ${account.customerDTO?.name || 'Unknown'}
+Current Balance: ${account.balance}
+
+⚠️ Warning: This action will:
+• Set the account status to CLOSED
+• Prevent all future transactions
+• Allow the customer to be deleted if this is their only account
+
+This action can be reversed by reactivating the account.`;
+
+    if (confirm(confirmMessage)) {
+      this.updateAccountStatus(account, 'CLOSED');
+    }
+  }
+
+  deleteAccount(account: BankAccount): void {
+    if (account.status !== 'CLOSED') {
+      alert(
+        'Account must be closed before it can be deleted. Please close the account first.'
+      );
+      return;
+    }
+
+    const confirmMessage = `⚠️ DANGER: Delete Account ${account.id}?
+
+Customer: ${account.customerDTO?.name || 'Unknown'}
+Current Balance: ${account.balance}
+
+This will PERMANENTLY DELETE the account and cannot be undone!
+
+Are you absolutely sure you want to delete this account?`;
+
+    if (confirm(confirmMessage)) {
+      this.accountService.deleteAccount(account.id).subscribe({
+        next: () => {
+          alert('Account deleted successfully');
+          this.loadAccounts(); // Refresh the list
+        },
+        error: (err: any) => {
+          console.error('Error deleting account:', err);
+          let errorMessage = 'Failed to delete account. Please try again.';
+
+          if (err.status === 400) {
+            errorMessage =
+              'Cannot delete account. It may have pending transactions or other dependencies.';
+          } else if (err.status === 403) {
+            errorMessage = 'You do not have permission to delete this account.';
+          }
+
+          alert(errorMessage);
+        },
+      });
+    }
   }
 }
