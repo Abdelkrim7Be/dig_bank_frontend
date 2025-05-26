@@ -19,6 +19,7 @@ import {
   PagedResponse,
   Account,
 } from '../../../shared/models/account.model';
+import { AccountSelectionDTO } from '../../../shared/models/banking-dtos.model';
 import { LoaderComponent } from '../../../shared/components/loader/loader.component';
 import { InlineAlertComponent } from '../../../shared/components/inline-alert/inline-alert.component';
 
@@ -307,14 +308,26 @@ import { InlineAlertComponent } from '../../../shared/components/inline-alert/in
               </div>
 
               <div class="mb-3">
-                <label for="accountId" class="form-label">Account ID *</label>
-                <input
-                  type="text"
-                  class="form-control"
+                <label for="accountId" class="form-label"
+                  >Select Account *</label
+                >
+                <select
+                  class="form-select"
                   id="accountId"
                   formControlName="accountId"
-                  placeholder="Enter account ID"
-                />
+                >
+                  <option value="">Choose an account...</option>
+                  <option
+                    *ngFor="let account of accountsForSelection"
+                    [value]="account.accountId"
+                  >
+                    {{ account.customerUsername }} -
+                    {{ account.customerName }} ({{ account.accountType }}:
+                    {{
+                      account.balance | currency : 'USD' : 'symbol' : '1.2-2'
+                    }})
+                  </option>
+                </select>
                 <div
                   *ngIf="
                     operationForm.get('accountId')?.invalid &&
@@ -322,7 +335,7 @@ import { InlineAlertComponent } from '../../../shared/components/inline-alert/in
                   "
                   class="text-danger small mt-1"
                 >
-                  Account ID is required
+                  Please select an account
                 </div>
               </div>
               <div class="mb-3">
@@ -433,6 +446,7 @@ export class AdminTransactionsComponent implements OnInit {
   error = '';
   successMessage = '';
   errorMessage = '';
+  accountsForSelection: AccountSelectionDTO[] = [];
 
   // Operation modal
   currentOperation: 'credit' | 'debit' = 'credit';
@@ -464,6 +478,18 @@ export class AdminTransactionsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadTransactions();
+    this.loadAccounts();
+  }
+
+  loadAccounts(): void {
+    this.bankingApiService.getAccountsForSelection().subscribe({
+      next: (accounts) => {
+        this.accountsForSelection = accounts;
+      },
+      error: (error) => {
+        console.error('Error loading accounts for selection:', error);
+      },
+    });
   }
 
   loadTransactions(): void {
