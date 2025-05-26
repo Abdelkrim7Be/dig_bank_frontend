@@ -1,8 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 import { AccountService } from '../shared/services/account.service';
+import { BankingApiService } from '../core/services/banking-api.service';
+import { AuthService } from '../auth/services/auth.service';
 import {
   Transaction,
   TransactionType,
@@ -11,6 +14,8 @@ import {
   PagedResponse,
   Account,
 } from '../shared/models/account.model';
+import { AccountSelectionDTO } from '../shared/models/banking-dtos.model';
+import { User, UserRole } from '../auth/models/auth.model';
 import { LoaderComponent } from '../shared/components/loader/loader.component';
 import { InlineAlertComponent } from '../shared/components/inline-alert/inline-alert.component';
 
@@ -35,15 +40,18 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
           </p>
         </div>
         <div class="d-flex gap-2">
-          <button class="btn btn-success" routerLink="/deposit">
+          <button class="btn btn-success" routerLink="/customer/deposit">
             <i class="bi bi-plus-circle me-2"></i>
-            Deposit
+            Add Money
           </button>
-          <button class="btn btn-warning" routerLink="/withdraw">
+          <button class="btn btn-warning" routerLink="/customer/debit">
             <i class="bi bi-dash-circle me-2"></i>
-            Withdraw
+            Debit
           </button>
-          <button class="btn btn-primary" routerLink="/transfer">
+          <button
+            class="btn btn-primary"
+            [routerLink]="isAdmin ? '/admin/transfer' : '/customer/transfer'"
+          >
             <i class="bi bi-arrow-left-right me-2"></i>
             Transfer
           </button>
@@ -69,9 +77,13 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                 (change)="applyFilters()"
               >
                 <option value="">All Accounts</option>
-                <option *ngFor="let account of accounts" [value]="account.id">
-                  {{ account.id }} -
-                  {{ getAccountDisplayText(account) }}
+                <option
+                  *ngFor="let account of accountsForSelection"
+                  [value]="account.accountId"
+                >
+                  {{ account.customerUsername }} -
+                  {{ account.customerName }} ({{ account.accountType }}:
+                  {{ account.balance | currency : 'USD' : 'symbol' : '1.2-2' }})
                 </option>
               </select>
             </div>
@@ -84,8 +96,8 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                 (change)="applyFilters()"
               >
                 <option value="">All Types</option>
-                <option value="DEPOSIT">Deposit</option>
-                <option value="WITHDRAWAL">Withdrawal</option>
+                <option value="DEPOSIT">Add Money</option>
+                <option value="WITHDRAWAL">Debit</option>
                 <option value="TRANSFER">Transfer</option>
                 <option value="PAYMENT">Payment</option>
                 <option value="FEE">Fee</option>
@@ -343,12 +355,15 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
     `,
   ],
 })
-export class TransactionsComponent implements OnInit {
+export class TransactionsComponent implements OnInit, OnDestroy {
   transactions: Transaction[] = [];
   accounts: Account[] = [];
+  accountsForSelection: AccountSelectionDTO[] = [];
   pagedResponse: PagedResponse<Transaction> | null = null;
   loading = false;
   error = '';
+  currentUser: User | null = null;
+  private destroy$ = new Subject<void>();
 
   filter: TransactionFilter = {
     page: 0,
@@ -357,20 +372,53 @@ export class TransactionsComponent implements OnInit {
     sortDirection: 'desc',
   };
 
-  constructor(private accountService: AccountService) {}
+  constructor(
+    private accountService: AccountService,
+    private bankingApiService: BankingApiService,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
+    this.authService.currentUser$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((user) => {
+        this.currentUser = user;
+      });
     this.loadAccounts();
     this.loadTransactions();
   }
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  get isAdmin(): boolean {
+    return this.currentUser?.role === UserRole.ADMIN;
+  }
+
+  get isCustomer(): boolean {
+    return this.currentUser?.role === UserRole.CUSTOMER;
+  }
+
   loadAccounts(): void {
+    // Load accounts for backward compatibility
     this.accountService.getAccounts().subscribe({
       next: (accounts) => {
         this.accounts = accounts;
       },
       error: (error) => {
         console.error('Error loading accounts:', error);
+      },
+    });
+
+    // Load accounts for selection dropdown with usernames
+    this.bankingApiService.getActiveAccountsForSelection().subscribe({
+      next: (accounts) => {
+        this.accountsForSelection = accounts;
+      },
+      error: (error) => {
+        console.error('Error loading accounts for selection:', error);
       },
     });
   }
@@ -429,7 +477,23 @@ export class TransactionsComponent implements OnInit {
     if (!type) {
       return 'Unknown';
     }
-    return type.charAt(0) + type.slice(1).toLowerCase();
+
+    switch (type) {
+      case TransactionType.DEPOSIT:
+        return 'Add Money';
+      case TransactionType.WITHDRAWAL:
+        return 'Debit';
+      case TransactionType.TRANSFER:
+        return 'Transfer';
+      case TransactionType.PAYMENT:
+        return 'Payment';
+      case TransactionType.FEE:
+        return 'Fee';
+      case TransactionType.INTEREST:
+        return 'Interest';
+      default:
+        return type.charAt(0) + type.slice(1).toLowerCase();
+    }
   }
 
   getTypeBadgeClass(type: TransactionType): string {

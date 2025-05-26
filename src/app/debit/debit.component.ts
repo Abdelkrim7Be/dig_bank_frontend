@@ -7,13 +7,16 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { AccountService } from '../shared/services/account.service';
-import { Account, WithdrawalRequest } from '../shared/models/account.model';
+import { BankingApiService } from '../core/services/banking-api.service';
+import {
+  AccountSelectionDTO,
+  DebitRequest,
+} from '../shared/models/banking-dtos.model';
 
 import { InlineAlertComponent } from '../shared/components/inline-alert/inline-alert.component';
 
 @Component({
-  selector: 'app-withdraw',
+  selector: 'app-debit',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, InlineAlertComponent],
   template: `
@@ -29,22 +32,22 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
               <li class="breadcrumb-item">
                 <a routerLink="/accounts">Accounts</a>
               </li>
-              <li class="breadcrumb-item active">Withdraw Money</li>
+              <li class="breadcrumb-item active">Debit Money</li>
             </ol>
           </nav>
-          <h2 class="mb-1">Withdraw Money</h2>
-          <p class="text-muted mb-0">Withdraw funds from your account</p>
+          <h2 class="mb-1">Debit Money</h2>
+          <p class="text-muted mb-0">Debit funds from an account</p>
         </div>
       </div>
 
       <div class="row justify-content-center">
         <div class="col-lg-6">
-          <!-- Withdrawal Form -->
+          <!-- Debit Form -->
           <div class="card">
             <div class="card-header">
               <h5 class="mb-0">
                 <i class="bi bi-dash-circle me-2 text-warning"></i>
-                Withdrawal Details
+                Debit Details
               </h5>
             </div>
             <div class="card-body">
@@ -68,7 +71,7 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
               >
               </app-inline-alert>
 
-              <form [formGroup]="withdrawForm" (ngSubmit)="onSubmit()">
+              <form [formGroup]="debitForm" (ngSubmit)="onSubmit()">
                 <!-- Account Selection -->
                 <div class="mb-3">
                   <label for="account" class="form-label"
@@ -83,17 +86,16 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                       (accountId?.dirty || accountId?.touched)
                     "
                   >
-                    <option value="">Choose account to withdraw from</option>
+                    <option value="">Choose account to debit from</option>
                     <option
                       *ngFor="let account of accounts"
-                      [value]="account.id"
+                      [value]="account.accountId"
                     >
-                      {{ account.accountNumber }} -
-                      {{ getAccountTypeDisplay(account.accountType) }}
-                      (Available:
+                      {{ account.customerUsername }} -
+                      {{ account.customerName }} ({{ account.accountType }}:
+                      Available:
                       {{
-                        account.balance
-                          | currency : account.currency : 'symbol' : '1.2-2'
+                        account.balance | currency : 'USD' : 'symbol' : '1.2-2'
                       }})
                     </option>
                   </select>
@@ -112,9 +114,7 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
 
                 <!-- Amount -->
                 <div class="mb-3">
-                  <label for="amount" class="form-label"
-                    >Withdrawal Amount *</label
-                  >
+                  <label for="amount" class="form-label">Debit Amount *</label>
                   <div class="input-group">
                     <span class="input-group-text">$</span>
                     <input
@@ -145,9 +145,6 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                     <div *ngIf="amount?.errors?.['max']">
                       Amount exceeds available balance
                     </div>
-                    <div *ngIf="amount?.errors?.['dailyLimit']">
-                      Amount exceeds daily withdrawal limit
-                    </div>
                   </div>
                   <div class="form-text" *ngIf="getSelectedAccount()">
                     Available balance:
@@ -155,7 +152,6 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                       getSelectedAccount()?.balance
                         | currency : 'USD' : 'symbol' : '1.2-2'
                     }}
-                    | Daily limit: $1,000.00
                   </div>
                 </div>
 
@@ -173,7 +169,7 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                       description?.invalid &&
                       (description?.dirty || description?.touched)
                     "
-                    placeholder="Enter withdrawal description"
+                    placeholder="Enter debit description"
                   />
                   <div
                     class="invalid-feedback"
@@ -191,28 +187,15 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                   </div>
                 </div>
 
-                <!-- Reference (Optional) -->
-                <div class="mb-4">
-                  <label for="reference" class="form-label"
-                    >Reference (Optional)</label
-                  >
-                  <input
-                    type="text"
-                    id="reference"
-                    class="form-control"
-                    formControlName="reference"
-                    placeholder="Enter reference number or note"
-                  />
-                </div>
-
-                <!-- Withdrawal Summary -->
-                <div class="card bg-light mb-4" *ngIf="withdrawForm.valid">
+                <!-- Debit Summary -->
+                <div class="card bg-light mb-4" *ngIf="debitForm.valid">
                   <div class="card-body">
-                    <h6 class="card-title">Withdrawal Summary</h6>
+                    <h6 class="card-title">Debit Summary</h6>
                     <div class="row">
                       <div class="col-md-6">
                         <strong>Account:</strong>
-                        {{ getSelectedAccount()?.accountNumber }}<br />
+                        {{ getSelectedAccount()?.customerUsername }} -
+                        {{ getSelectedAccount()?.customerName }}<br />
                         <strong>Current Balance:</strong>
                         {{
                           getSelectedAccount()?.balance
@@ -220,7 +203,7 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                         }}<br />
                       </div>
                       <div class="col-md-6">
-                        <strong>Withdrawal Amount:</strong>
+                        <strong>Debit Amount:</strong>
                         {{
                           amount?.value | currency : 'USD' : 'symbol' : '1.2-2'
                         }}<br />
@@ -239,8 +222,8 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                 <!-- Warning for Low Balance -->
                 <div class="alert alert-warning" *ngIf="isLowBalance()">
                   <i class="bi bi-exclamation-triangle me-2"></i>
-                  <strong>Warning:</strong> This withdrawal will leave your
-                  account with a low balance.
+                  <strong>Warning:</strong> This debit will leave the account
+                  with a low balance.
                 </div>
 
                 <!-- Action Buttons -->
@@ -256,49 +239,17 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                   <button
                     type="submit"
                     class="btn btn-warning"
-                    [disabled]="withdrawForm.invalid || loading"
+                    [disabled]="debitForm.invalid || loading"
                   >
                     <span
                       *ngIf="loading"
                       class="spinner-border spinner-border-sm me-2"
                     ></span>
                     <i class="bi bi-dash-circle me-2" *ngIf="!loading"></i>
-                    {{ loading ? 'Processing...' : 'Withdraw Money' }}
+                    {{ loading ? 'Processing...' : 'Debit Money' }}
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-
-          <!-- Withdrawal Methods Info -->
-          <div class="card mt-4">
-            <div class="card-header">
-              <h6 class="mb-0">
-                <i class="bi bi-info-circle me-2"></i>
-                Withdrawal Methods
-              </h6>
-            </div>
-            <div class="card-body">
-              <div class="row">
-                <div class="col-md-6">
-                  <h6><i class="bi bi-credit-card me-2"></i>ATM Withdrawal</h6>
-                  <p class="small text-muted">Use your debit card at any ATM</p>
-                </div>
-                <div class="col-md-6">
-                  <h6><i class="bi bi-bank me-2"></i>Branch Withdrawal</h6>
-                  <p class="small text-muted">Visit any branch location</p>
-                </div>
-                <div class="col-md-6">
-                  <h6><i class="bi bi-phone me-2"></i>Mobile Withdrawal</h6>
-                  <p class="small text-muted">
-                    Cardless withdrawal using mobile app
-                  </p>
-                </div>
-                <div class="col-md-6">
-                  <h6><i class="bi bi-check-circle me-2"></i>Check Request</h6>
-                  <p class="small text-muted">Request a cashier's check</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -346,18 +297,17 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
     `,
   ],
 })
-export class WithdrawComponent implements OnInit {
-  withdrawForm!: FormGroup;
-  accounts: Account[] = [];
+export class DebitComponent implements OnInit {
+  debitForm!: FormGroup;
+  accounts: AccountSelectionDTO[] = [];
   loading = false;
   successMessage = '';
   errorMessage = '';
-  preselectedAccountId: number | null = null;
-  dailyWithdrawalLimit = 1000;
+  preselectedAccountId: string | null = null;
 
   constructor(
     private fb: FormBuilder,
-    private accountService: AccountService,
+    private bankingApiService: BankingApiService,
     private router: Router,
     private route: ActivatedRoute
   ) {}
@@ -369,47 +319,40 @@ export class WithdrawComponent implements OnInit {
     // Check if account ID is provided in route params
     this.route.params.subscribe((params) => {
       if (params['accountId']) {
-        this.preselectedAccountId = +params['accountId'];
+        this.preselectedAccountId = params['accountId'];
       }
     });
   }
 
   initializeForm(): void {
-    this.withdrawForm = this.fb.group({
+    this.debitForm = this.fb.group({
       accountId: ['', [Validators.required]],
       amount: ['', [Validators.required, Validators.min(0.01)]],
       description: ['', [Validators.required, Validators.minLength(3)]],
-      reference: [''],
     });
 
     // Add custom validators
-    this.withdrawForm.get('amount')?.valueChanges.subscribe(() => {
+    this.debitForm.get('amount')?.valueChanges.subscribe(() => {
       this.validateAmount();
     });
 
-    this.withdrawForm.get('accountId')?.valueChanges.subscribe(() => {
+    this.debitForm.get('accountId')?.valueChanges.subscribe(() => {
       this.validateAmount();
     });
   }
 
   validateAmount(): void {
-    const amountControl = this.withdrawForm.get('amount');
-    const accountId = this.withdrawForm.get('accountId')?.value;
+    const amountControl = this.debitForm.get('amount');
+    const accountId = this.debitForm.get('accountId')?.value;
 
     if (amountControl && accountId) {
-      const account = this.accounts.find((acc) => acc.id == accountId);
+      const account = this.accounts.find((acc) => acc.accountId == accountId);
       const amount = amountControl.value;
 
       if (account && amount > account.balance) {
         amountControl.setErrors({ max: true });
-      } else if (amount > this.dailyWithdrawalLimit) {
-        amountControl.setErrors({ dailyLimit: true });
-      } else if (
-        amountControl.errors?.['max'] ||
-        amountControl.errors?.['dailyLimit']
-      ) {
+      } else if (amountControl.errors?.['max']) {
         delete amountControl.errors['max'];
-        delete amountControl.errors['dailyLimit'];
         if (Object.keys(amountControl.errors).length === 0) {
           amountControl.setErrors(null);
         }
@@ -418,19 +361,19 @@ export class WithdrawComponent implements OnInit {
   }
 
   loadAccounts(): void {
-    this.accountService.getAccounts().subscribe({
+    this.bankingApiService.getActiveAccountsForSelection().subscribe({
       next: (accounts) => {
         this.accounts = accounts.filter(
-          (acc) => acc.status === 'ACTIVE' && acc.balance > 0
+          (acc) => acc.status === 'ACTIVATED' && acc.balance > 0
         );
 
         // Set preselected account if provided
         if (this.preselectedAccountId) {
           const account = this.accounts.find(
-            (acc) => acc.id === this.preselectedAccountId
+            (acc) => acc.accountId === this.preselectedAccountId
           );
           if (account) {
-            this.withdrawForm.patchValue({ accountId: account.id });
+            this.debitForm.patchValue({ accountId: account.accountId });
           }
         }
       },
@@ -441,14 +384,14 @@ export class WithdrawComponent implements OnInit {
     });
   }
 
-  getSelectedAccount(): Account | undefined {
-    const accountId = this.withdrawForm.get('accountId')?.value;
-    return this.accounts.find((account) => account.id == accountId);
+  getSelectedAccount(): AccountSelectionDTO | undefined {
+    const accountId = this.debitForm.get('accountId')?.value;
+    return this.accounts.find((account) => account.accountId == accountId);
   }
 
   getRemainingBalance(): number {
     const selectedAccount = this.getSelectedAccount();
-    const amount = this.withdrawForm.get('amount')?.value || 0;
+    const amount = this.debitForm.get('amount')?.value || 0;
     return selectedAccount ? selectedAccount.balance - amount : 0;
   }
 
@@ -457,13 +400,9 @@ export class WithdrawComponent implements OnInit {
     return remainingBalance < 100 && remainingBalance >= 0;
   }
 
-  getAccountTypeDisplay(type: string): string {
-    return type.charAt(0) + type.slice(1).toLowerCase();
-  }
-
   onSubmit(): void {
-    if (this.withdrawForm.invalid) {
-      this.withdrawForm.markAllAsTouched();
+    if (this.debitForm.invalid) {
+      this.debitForm.markAllAsTouched();
       return;
     }
 
@@ -471,31 +410,35 @@ export class WithdrawComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    const withdrawalRequest: WithdrawalRequest = {
-      accountId: this.withdrawForm.value.accountId,
-      amount: this.withdrawForm.value.amount,
-      description: this.withdrawForm.value.description,
-      reference: this.withdrawForm.value.reference,
+    const debitRequest: DebitRequest = {
+      amount: this.debitForm.value.amount,
+      description: this.debitForm.value.description,
     };
 
-    this.accountService.withdraw(withdrawalRequest).subscribe({
-      next: (transaction) => {
-        this.loading = false;
-        this.successMessage = `Withdrawal completed successfully! Transaction ID: ${transaction.id}`;
-        this.withdrawForm.reset();
+    this.bankingApiService
+      .debit(
+        this.debitForm.value.accountId,
+        debitRequest.amount,
+        debitRequest.description
+      )
+      .subscribe({
+        next: () => {
+          this.loading = false;
+          this.successMessage = `Debit completed successfully!`;
+          this.debitForm.reset();
 
-        // Redirect to accounts page after 3 seconds
-        setTimeout(() => {
-          this.router.navigate(['/accounts']);
-        }, 3000);
-      },
-      error: (error) => {
-        this.loading = false;
-        this.errorMessage =
-          error.error?.message || 'Withdrawal failed. Please try again.';
-        console.error('Withdrawal error:', error);
-      },
-    });
+          // Redirect to accounts page after 3 seconds
+          setTimeout(() => {
+            this.router.navigate(['/accounts']);
+          }, 3000);
+        },
+        error: (error) => {
+          this.loading = false;
+          this.errorMessage =
+            error.error?.message || 'Debit failed. Please try again.';
+          console.error('Debit error:', error);
+        },
+      });
   }
 
   goBack(): void {
@@ -504,15 +447,12 @@ export class WithdrawComponent implements OnInit {
 
   // Getter methods for form controls
   get accountId() {
-    return this.withdrawForm.get('accountId');
+    return this.debitForm.get('accountId');
   }
   get amount() {
-    return this.withdrawForm.get('amount');
+    return this.debitForm.get('amount');
   }
   get description() {
-    return this.withdrawForm.get('description');
-  }
-  get reference() {
-    return this.withdrawForm.get('reference');
+    return this.debitForm.get('description');
   }
 }

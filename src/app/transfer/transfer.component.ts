@@ -7,8 +7,11 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AccountService } from '../shared/services/account.service';
-import { Account, TransferRequest } from '../shared/models/account.model';
+import { BankingApiService } from '../core/services/banking-api.service';
+import {
+  AccountSelectionDTO,
+  TransferRequestDTO,
+} from '../shared/models/banking-dtos.model';
 
 import { InlineAlertComponent } from '../shared/components/inline-alert/inline-alert.component';
 
@@ -89,12 +92,13 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                       <option value="">Select source account</option>
                       <option
                         *ngFor="let account of accounts"
-                        [value]="account.id"
+                        [value]="account.accountId"
                       >
-                        {{ account.accountNumber }} -
-                        {{ getAccountTypeDisplay(account.accountType) }} ({{
+                        {{ account.customerUsername }} -
+                        {{ account.customerName }} ({{ account.accountType }}:
+                        {{
                           account.balance
-                            | currency : account.currency : 'symbol' : '1.2-2'
+                            | currency : 'USD' : 'symbol' : '1.2-2'
                         }})
                       </option>
                     </select>
@@ -128,12 +132,13 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                       <option value="">Select destination account</option>
                       <option
                         *ngFor="let account of getAvailableToAccounts()"
-                        [value]="account.id"
+                        [value]="account.accountId"
                       >
-                        {{ account.accountNumber }} -
-                        {{ getAccountTypeDisplay(account.accountType) }} ({{
+                        {{ account.customerUsername }} -
+                        {{ account.customerName }} ({{ account.accountType }}:
+                        {{
                           account.balance
-                            | currency : account.currency : 'symbol' : '1.2-2'
+                            | currency : 'USD' : 'symbol' : '1.2-2'
                         }})
                       </option>
                     </select>
@@ -247,9 +252,11 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                     <div class="row">
                       <div class="col-md-6">
                         <strong>From:</strong>
-                        {{ getSelectedFromAccount()?.accountNumber }}<br />
+                        {{ getSelectedFromAccount()?.customerUsername }} -
+                        {{ getSelectedFromAccount()?.customerName }}<br />
                         <strong>To:</strong>
-                        {{ getSelectedToAccount()?.accountNumber }}<br />
+                        {{ getSelectedToAccount()?.customerUsername }} -
+                        {{ getSelectedToAccount()?.customerName }}<br />
                       </div>
                       <div class="col-md-6">
                         <strong>Amount:</strong>
@@ -324,14 +331,14 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
 })
 export class TransferComponent implements OnInit {
   transferForm!: FormGroup;
-  accounts: Account[] = [];
+  accounts: AccountSelectionDTO[] = [];
   loading = false;
   successMessage = '';
   errorMessage = '';
 
   constructor(
     private fb: FormBuilder,
-    private accountService: AccountService,
+    private bankingApiService: BankingApiService,
     private router: Router
   ) {}
 
@@ -364,7 +371,9 @@ export class TransferComponent implements OnInit {
     const fromAccountId = this.transferForm.get('fromAccountId')?.value;
 
     if (amountControl && fromAccountId) {
-      const fromAccount = this.accounts.find((acc) => acc.id == fromAccountId);
+      const fromAccount = this.accounts.find(
+        (acc) => acc.accountId == fromAccountId
+      );
       if (fromAccount && amountControl.value > fromAccount.balance) {
         amountControl.setErrors({ max: true });
       } else if (amountControl.errors?.['max']) {
@@ -377,30 +386,66 @@ export class TransferComponent implements OnInit {
   }
 
   loadAccounts(): void {
-    this.accountService.getAccounts().subscribe({
+    // Try active accounts first
+    this.bankingApiService.getActiveAccountsForSelection().subscribe({
       next: (accounts) => {
-        this.accounts = accounts.filter((acc) => acc.status === 'ACTIVE');
+        console.log('Loaded accounts:', accounts); // Debug log
+        // Filter for active accounts, but be more flexible with status
+        this.accounts = accounts.filter(
+          (acc) => acc.status === 'ACTIVATED' || acc.status === 'ACTIVE'
+        );
+        console.log('Filtered accounts:', this.accounts); // Debug log
+
+        if (this.accounts.length === 0) {
+          console.warn('No active accounts found, trying all accounts');
+          // Fallback to all accounts
+          this.loadAllAccounts();
+        }
       },
       error: (error) => {
-        this.errorMessage = 'Failed to load accounts. Please try again.';
-        console.error('Error loading accounts:', error);
+        console.error(
+          'Error loading active accounts, trying all accounts:',
+          error
+        );
+        // Fallback to all accounts
+        this.loadAllAccounts();
       },
     });
   }
 
-  getAvailableToAccounts(): Account[] {
-    const fromAccountId = this.transferForm.get('fromAccountId')?.value;
-    return this.accounts.filter((account) => account.id != fromAccountId);
+  loadAllAccounts(): void {
+    this.bankingApiService.getAccountsForSelection().subscribe({
+      next: (accounts) => {
+        console.log('Loaded all accounts:', accounts); // Debug log
+        this.accounts = accounts;
+        console.log('Using all accounts:', this.accounts); // Debug log
+
+        if (this.accounts.length === 0) {
+          this.errorMessage = 'No accounts available for transfer.';
+        }
+      },
+      error: (error) => {
+        this.errorMessage = 'Failed to load accounts. Please try again.';
+        console.error('Error loading all accounts:', error);
+      },
+    });
   }
 
-  getSelectedFromAccount(): Account | undefined {
+  getAvailableToAccounts(): AccountSelectionDTO[] {
     const fromAccountId = this.transferForm.get('fromAccountId')?.value;
-    return this.accounts.find((account) => account.id == fromAccountId);
+    return this.accounts.filter(
+      (account) => account.accountId != fromAccountId
+    );
   }
 
-  getSelectedToAccount(): Account | undefined {
+  getSelectedFromAccount(): AccountSelectionDTO | undefined {
+    const fromAccountId = this.transferForm.get('fromAccountId')?.value;
+    return this.accounts.find((account) => account.accountId == fromAccountId);
+  }
+
+  getSelectedToAccount(): AccountSelectionDTO | undefined {
     const toAccountId = this.transferForm.get('toAccountId')?.value;
-    return this.accounts.find((account) => account.id == toAccountId);
+    return this.accounts.find((account) => account.accountId == toAccountId);
   }
 
   getAccountTypeDisplay(type: string): string {
@@ -417,23 +462,22 @@ export class TransferComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    const transferRequest: TransferRequest = {
-      fromAccountId: this.transferForm.value.fromAccountId,
-      toAccountId: this.transferForm.value.toAccountId,
+    const transferRequest: TransferRequestDTO = {
+      sourceAccountId: this.transferForm.value.fromAccountId,
+      destinationAccountId: this.transferForm.value.toAccountId,
       amount: this.transferForm.value.amount,
       description: this.transferForm.value.description,
-      reference: this.transferForm.value.reference,
     };
 
-    this.accountService.transfer(transferRequest).subscribe({
-      next: (transaction) => {
+    this.bankingApiService.transfer(transferRequest).subscribe({
+      next: () => {
         this.loading = false;
-        this.successMessage = `Transfer completed successfully! Transaction ID: ${transaction.id}`;
+        this.successMessage = `Transfer completed successfully!`;
         this.transferForm.reset();
 
-        // Redirect to transactions page after 3 seconds
+        // Redirect to accounts page after 3 seconds
         setTimeout(() => {
-          this.router.navigate(['/transactions']);
+          this.router.navigate(['/accounts']);
         }, 3000);
       },
       error: (error) => {

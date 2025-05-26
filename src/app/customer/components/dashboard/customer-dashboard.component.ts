@@ -45,13 +45,16 @@ interface RecentTransaction {
           <div class="col-md-4 text-md-end">
             <div class="quick-actions">
               <button
-                class="btn btn-primary me-2"
-                routerLink="/customer/transfer"
+                class="btn btn-success me-2"
+                routerLink="/customer/deposit"
               >
-                <i class="bi bi-arrow-left-right me-1"></i>Transfer
+                <i class="bi bi-plus-circle me-1"></i>Add Money
               </button>
-              <button class="btn btn-success" routerLink="/customer/deposit">
-                <i class="bi bi-plus-circle me-1"></i>Deposit
+              <button class="btn btn-warning me-2" routerLink="/customer/debit">
+                <i class="bi bi-dash-circle me-1"></i>Debit
+              </button>
+              <button class="btn btn-primary" routerLink="/customer/transfer">
+                <i class="bi bi-arrow-left-right me-1"></i>Transfer
               </button>
             </div>
           </div>
@@ -231,16 +234,16 @@ interface RecentTransaction {
                     routerLink="/customer/deposit"
                   >
                     <i class="bi bi-plus-circle display-6 d-block mb-2"></i>
-                    <span>Deposit Money</span>
+                    <span>Add Money</span>
                   </button>
                 </div>
                 <div class="col-md-3 col-6 mb-3">
                   <button
                     class="btn btn-outline-warning w-100 h-100 py-3"
-                    routerLink="/customer/withdraw"
+                    routerLink="/customer/debit"
                   >
                     <i class="bi bi-dash-circle display-6 d-block mb-2"></i>
-                    <span>Withdraw</span>
+                    <span>Debit</span>
                   </button>
                 </div>
                 <div class="col-md-3 col-6 mb-3">

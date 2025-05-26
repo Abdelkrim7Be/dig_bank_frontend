@@ -2,18 +2,18 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
+import { map, tap } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 import { AuthService } from '../../../auth/services/auth.service';
 import { User } from '../../../auth/models/auth.model';
 import {
   DashboardService,
   DashboardStats,
-  AdminDashboardData,
 } from '../../../shared/services/dashboard.service';
 import { AdminAccountService } from '../../services/account.service';
+import { AccountService } from '../../../shared/services/account.service';
 
 Chart.register(...registerables);
-
-// Remove duplicate interface since it's imported from service
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -131,31 +131,6 @@ Chart.register(...registerables);
         </div>
       </div>
 
-      <!-- Charts Row -->
-      <div class="row mb-4">
-        <div class="col-lg-8 mb-4">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-white">
-              <h5 class="card-title mb-0">Transaction Volume</h5>
-            </div>
-            <div class="card-body">
-              <canvas id="transactionChart" width="400" height="200"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-lg-4 mb-4">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-white">
-              <h5 class="card-title mb-0">Account Types</h5>
-            </div>
-            <div class="card-body">
-              <canvas id="accountChart" width="400" height="200"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Recent Activity -->
       <div class="row">
         <div class="col-lg-8 mb-4">
@@ -191,11 +166,8 @@ Chart.register(...registerables);
                           </div>
                           <div>
                             <div class="fw-semibold">
-                              {{ transaction.customerName }}
+                              {{ getCustomerName(transaction) }}
                             </div>
-                            <small class="text-muted">{{
-                              transaction.accountNumber
-                            }}</small>
                           </div>
                         </div>
                       </td>
@@ -214,15 +186,10 @@ Chart.register(...registerables);
                         {{ transaction.amount | currency }}
                       </td>
                       <td>
-                        <span
-                          class="badge"
-                          [class]="getStatusBadge(transaction.status)"
-                        >
-                          {{ transaction.status }}
-                        </span>
+                        <span class="badge bg-success"> COMPLETED </span>
                       </td>
                       <td class="text-muted">
-                        {{ transaction.date | date : 'short' }}
+                        {{ transaction.operationDate | date : 'short' }}
                       </td>
                     </tr>
                   </tbody>
@@ -260,37 +227,6 @@ Chart.register(...registerables);
                 <button class="btn btn-info" routerLink="/admin/reports">
                   <i class="bi bi-graph-up me-2"></i>Generate Report
                 </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- System Status -->
-          <div class="card border-0 shadow-sm mt-4">
-            <div class="card-header bg-white">
-              <h5 class="card-title mb-0">System Status</h5>
-            </div>
-            <div class="card-body">
-              <div
-                class="d-flex justify-content-between align-items-center mb-2"
-              >
-                <span>API Status</span>
-                <span class="badge bg-success">Online</span>
-              </div>
-              <div
-                class="d-flex justify-content-between align-items-center mb-2"
-              >
-                <span>Database</span>
-                <span class="badge bg-success">Connected</span>
-              </div>
-              <div
-                class="d-flex justify-content-between align-items-center mb-2"
-              >
-                <span>Payment Gateway</span>
-                <span class="badge bg-success">Active</span>
-              </div>
-              <div class="d-flex justify-content-between align-items-center">
-                <span>Backup Status</span>
-                <span class="badge bg-warning">Scheduled</span>
               </div>
             </div>
           </div>
@@ -371,7 +307,8 @@ export class AdminDashboardComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private dashboardService: DashboardService,
-    private accountService: AdminAccountService
+    private adminAccountService: AdminAccountService,
+    private accountService: AccountService
   ) {}
 
   ngOnInit(): void {
@@ -383,152 +320,117 @@ export class AdminDashboardComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    // Load both dashboard data and account statistics
+    // Load dashboard stats, account statistics, and recent transactions separately
     Promise.all([
-      this.dashboardService.getAdminDashboard().toPromise(),
-      this.accountService.getAccountStats().toPromise(),
+      this.dashboardService
+        .getAdminStats()
+        .toPromise()
+        .catch(() => null),
+      this.adminAccountService
+        .getAccountStats()
+        .toPromise()
+        .catch(() => null),
+      this.loadRecentTransactions()
+        .toPromise()
+        .catch(() => []),
     ])
-      .then(([dashboardData, accountStats]) => {
-        if (dashboardData) {
+      .then(([dashboardStats, accountStats, recentTransactions]) => {
+        // Set stats from dashboard or fallback to account stats
+        if (dashboardStats) {
           this.stats = {
-            ...dashboardData.stats,
+            ...dashboardStats,
             totalAccounts:
-              accountStats?.totalAccounts || dashboardData.stats.totalAccounts,
+              accountStats?.totalAccounts || dashboardStats.totalAccounts,
             totalBalance:
-              accountStats?.totalBalance || dashboardData.stats.totalBalance,
+              accountStats?.totalBalance || dashboardStats.totalBalance,
           };
-          this.recentTransactions = dashboardData.recentTransactions;
+        } else if (accountStats) {
+          // Fallback to account stats if dashboard stats fail
+          this.stats = {
+            totalCustomers: 0,
+            totalAccounts: accountStats.totalAccounts || 0,
+            totalBalance: accountStats.totalBalance || 0,
+            totalTransactions: 0,
+            activeCustomers: 0,
+            pendingTransactions: 0,
+            monthlyGrowth: 0,
+            revenueGrowth: 0,
+          };
         }
+
+        this.recentTransactions = recentTransactions || [];
         this.loading = false;
-        this.initializeCharts();
       })
       .catch((error) => {
         console.error('Error loading dashboard data:', error);
         this.error = 'Failed to load dashboard data. Please try again.';
         this.loading = false;
-        // Initialize charts with default data
-        this.initializeCharts();
       });
   }
 
-  private initializeCharts(): void {
-    setTimeout(() => {
-      this.createTransactionChart();
-      this.createAccountChart();
-    }, 100);
+  private loadRecentTransactions(): Observable<any[]> {
+    // Load recent transactions using the admin transaction endpoint
+    return this.accountService
+      .getTransactions({
+        page: 0,
+        size: 5,
+        sortBy: 'operationDate',
+        sortDirection: 'desc',
+      })
+      .pipe(
+        map((response: any) => response.content || []),
+        tap((transactions: any[]) => {
+          console.log(
+            'Admin Dashboard - Recent transactions loaded:',
+            transactions
+          );
+        })
+      );
   }
 
-  private createTransactionChart(): void {
-    const ctx = document.getElementById(
-      'transactionChart'
-    ) as HTMLCanvasElement;
-    if (ctx) {
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-          datasets: [
-            {
-              label: 'Transactions',
-              data: [1200, 1900, 3000, 5000, 2000, 3000],
-              borderColor: '#e63946',
-              backgroundColor: 'rgba(230, 57, 70, 0.1)',
-              tension: 0.4,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: false,
-            },
-          },
-        },
-      });
-    }
-  }
-
-  private createAccountChart(): void {
-    const ctx = document.getElementById('accountChart') as HTMLCanvasElement;
-    if (ctx) {
-      // Get account statistics for the chart
-      this.accountService.getAccountStats().subscribe({
-        next: (accountStats) => {
-          const currentAccounts = accountStats.currentAccounts || 0;
-          const savingAccounts = accountStats.savingAccounts || 0;
-          const total = currentAccounts + savingAccounts;
-
-          new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-              labels: ['Current Accounts', 'Saving Accounts'],
-              datasets: [
-                {
-                  data: total > 0 ? [currentAccounts, savingAccounts] : [1, 1],
-                  backgroundColor: ['#e9c46a', '#2a9d8f'],
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: 'bottom',
-                },
-              },
-            },
-          });
-        },
-        error: () => {
-          // Fallback to default data if API fails
-          new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-              labels: ['Current Accounts', 'Saving Accounts'],
-              datasets: [
-                {
-                  data: [45, 35],
-                  backgroundColor: ['#e9c46a', '#2a9d8f'],
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: 'bottom',
-                },
-              },
-            },
-          });
-        },
-      });
-    }
-  }
-
+  // Helper methods for transaction display
   getTransactionTypeBadge(type: string): string {
-    const badges = {
-      DEPOSIT: 'bg-success',
-      WITHDRAWAL: 'bg-warning',
-      TRANSFER: 'bg-info',
-    };
-    return badges[type as keyof typeof badges] || 'bg-secondary';
-  }
-
-  getStatusBadge(status: string): string {
-    const badges = {
-      COMPLETED: 'bg-success',
-      PENDING: 'bg-warning',
-      FAILED: 'bg-danger',
-    };
-    return badges[status as keyof typeof badges] || 'bg-secondary';
+    switch (type?.toUpperCase()) {
+      case 'DEPOSIT':
+        return 'bg-success';
+      case 'WITHDRAWAL':
+        return 'bg-danger';
+      case 'TRANSFER':
+        return 'bg-primary';
+      default:
+        return 'bg-secondary';
+    }
   }
 
   getAmountClass(type: string): string {
-    return type === 'WITHDRAWAL' ? 'text-danger' : 'text-success';
+    switch (type?.toUpperCase()) {
+      case 'DEPOSIT':
+        return 'text-success';
+      case 'WITHDRAWAL':
+        return 'text-danger';
+      case 'TRANSFER':
+        return 'text-primary';
+      default:
+        return '';
+    }
+  }
+
+  getCustomerName(transaction: any): string {
+    // Extract customer username from the transaction data
+    if (transaction.customer && transaction.customer.username) {
+      return transaction.customer.username;
+    }
+    // Fallback to customer name if username not available
+    if (transaction.customer && transaction.customer.name) {
+      return transaction.customer.name;
+    }
+    // Fallback to other possible fields
+    if (transaction.customerName) {
+      return transaction.customerName;
+    }
+    if (transaction.performedBy) {
+      return transaction.performedBy;
+    }
+    return 'Unknown Customer';
   }
 }

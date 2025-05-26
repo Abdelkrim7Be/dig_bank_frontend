@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { Observable, BehaviorSubject, throwError } from 'rxjs';
+import { map, tap, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface BankAccount {
@@ -103,10 +103,60 @@ export class AdminAccountService {
    * Create new account
    */
   createAccount(accountData: CreateAccountRequest): Observable<BankAccount> {
+    console.log('AdminAccountService.createAccount() - URL:', this.API_URL);
+    console.log('AdminAccountService.createAccount() - Data:', accountData);
+    console.log(
+      'AdminAccountService.createAccount() - Token available:',
+      !!localStorage.getItem('digital-banking-token')
+    );
+
+    // Try the main endpoint first
     return this.http.post<BankAccount>(this.API_URL, accountData).pipe(
       tap((newAccount) => {
+        console.log(
+          'AdminAccountService.createAccount() - Success:',
+          newAccount
+        );
         const currentAccounts = this.accountsSubject.value;
         this.accountsSubject.next([...currentAccounts, newAccount]);
+      }),
+      catchError((error) => {
+        console.error('AdminAccountService.createAccount() - Error:', error);
+        console.error(
+          'AdminAccountService.createAccount() - Error status:',
+          error.status
+        );
+        console.error(
+          'AdminAccountService.createAccount() - Error message:',
+          error.message
+        );
+        console.error(
+          'AdminAccountService.createAccount() - Error URL:',
+          error.url
+        );
+
+        // If main endpoint fails with 404, try the specific endpoints
+        if (error.status === 404) {
+          console.log(
+            'AdminAccountService.createAccount() - Trying alternative endpoints...'
+          );
+
+          if (accountData.accountType === 'CURRENT') {
+            return this.createCurrentAccount(
+              accountData.initialBalance,
+              accountData.overdraft || 0,
+              accountData.customerId
+            );
+          } else if (accountData.accountType === 'SAVING') {
+            return this.createSavingAccount(
+              accountData.initialBalance,
+              accountData.interestRate || 0,
+              accountData.customerId
+            );
+          }
+        }
+
+        return throwError(() => error);
       })
     );
   }
@@ -119,17 +169,25 @@ export class AdminAccountService {
     overDraft: number,
     customerId: number
   ): Observable<BankAccount> {
+    console.log('AdminAccountService.createCurrentAccount() - Params:', {
+      initialBalance,
+      overDraft,
+      customerId,
+    });
+
     const params = new HttpParams()
       .set('initialBalance', initialBalance.toString())
       .set('overDraft', overDraft.toString())
       .set('customerId', customerId.toString());
 
-    return this.http.post<BankAccount>(`${this.API_URL}/current`, null, { params }).pipe(
-      tap((newAccount) => {
-        const currentAccounts = this.accountsSubject.value;
-        this.accountsSubject.next([...currentAccounts, newAccount]);
-      })
-    );
+    return this.http
+      .post<BankAccount>(`${this.API_URL}/current`, null, { params })
+      .pipe(
+        tap((newAccount) => {
+          const currentAccounts = this.accountsSubject.value;
+          this.accountsSubject.next([...currentAccounts, newAccount]);
+        })
+      );
   }
 
   /**
@@ -140,17 +198,25 @@ export class AdminAccountService {
     interestRate: number,
     customerId: number
   ): Observable<BankAccount> {
+    console.log('AdminAccountService.createSavingAccount() - Params:', {
+      initialBalance,
+      interestRate,
+      customerId,
+    });
+
     const params = new HttpParams()
       .set('initialBalance', initialBalance.toString())
       .set('interestRate', interestRate.toString())
       .set('customerId', customerId.toString());
 
-    return this.http.post<BankAccount>(`${this.API_URL}/saving`, null, { params }).pipe(
-      tap((newAccount) => {
-        const currentAccounts = this.accountsSubject.value;
-        this.accountsSubject.next([...currentAccounts, newAccount]);
-      })
-    );
+    return this.http
+      .post<BankAccount>(`${this.API_URL}/saving`, null, { params })
+      .pipe(
+        tap((newAccount) => {
+          const currentAccounts = this.accountsSubject.value;
+          this.accountsSubject.next([...currentAccounts, newAccount]);
+        })
+      );
   }
 
   /**

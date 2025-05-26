@@ -1,6 +1,9 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { Subject, takeUntil } from 'rxjs';
+import { AuthService } from '../../auth/services/auth.service';
+import { User, UserRole } from '../../auth/models/auth.model';
 
 @Component({
   selector: 'app-sidebar',
@@ -58,31 +61,31 @@ import { CommonModule } from '@angular/common';
         <li class="nav-item">
           <a
             class="nav-link text-white d-flex align-items-center"
-            routerLink="/transfer"
+            [routerLink]="isAdmin ? '/admin/transfer' : '/customer/transfer'"
             routerLinkActive="active"
           >
-            <i class="bi bi-send me-2"></i>
+            <i class="bi bi-arrow-left-right me-2"></i>
             <span *ngIf="!collapsed">Transfer</span>
           </a>
         </li>
         <li class="nav-item">
           <a
             class="nav-link text-white d-flex align-items-center"
-            routerLink="/deposit"
+            routerLink="/customer/deposit"
             routerLinkActive="active"
           >
             <i class="bi bi-plus-circle me-2"></i>
-            <span *ngIf="!collapsed">Deposit</span>
+            <span *ngIf="!collapsed">Add Money</span>
           </a>
         </li>
         <li class="nav-item">
           <a
             class="nav-link text-white d-flex align-items-center"
-            routerLink="/withdraw"
+            routerLink="/customer/debit"
             routerLinkActive="active"
           >
             <i class="bi bi-dash-circle me-2"></i>
-            <span *ngIf="!collapsed">Withdraw</span>
+            <span *ngIf="!collapsed">Debit</span>
           </a>
         </li>
 
@@ -155,8 +158,33 @@ import { CommonModule } from '@angular/common';
     `,
   ],
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit, OnDestroy {
   @Input() collapsed = false;
+  currentUser: User | null = null;
+  private destroy$ = new Subject<void>();
+
+  constructor(private authService: AuthService) {}
+
+  ngOnInit(): void {
+    this.authService.currentUser$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((user) => {
+        this.currentUser = user;
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  get isAdmin(): boolean {
+    return this.currentUser?.role === UserRole.ADMIN;
+  }
+
+  get isCustomer(): boolean {
+    return this.currentUser?.role === UserRole.CUSTOMER;
+  }
 
   toggleSidebar() {
     this.collapsed = !this.collapsed;

@@ -370,6 +370,20 @@ export class AdminAccountFormComponent implements OnInit {
       description: formData.description,
     };
 
+    console.log('AccountFormComponent.onSubmit() - Form data:', formData);
+    console.log(
+      'AccountFormComponent.onSubmit() - Account request:',
+      accountRequest
+    );
+    console.log(
+      'AccountFormComponent.onSubmit() - Current user:',
+      localStorage.getItem('current_user')
+    );
+    console.log(
+      'AccountFormComponent.onSubmit() - Token:',
+      localStorage.getItem('digital-banking-token')
+    );
+
     this.accountService.createAccount(accountRequest).subscribe({
       next: () => {
         this.success = 'Bank account created successfully!';
@@ -380,7 +394,17 @@ export class AdminAccountFormComponent implements OnInit {
       },
       error: (err) => {
         this.error = 'Failed to create account. Please try again.';
-        console.error('Error creating account:', err);
+        console.error(
+          'AccountFormComponent.onSubmit() - Error creating account:',
+          err
+        );
+        console.error('AccountFormComponent.onSubmit() - Error details:', {
+          status: err.status,
+          statusText: err.statusText,
+          url: err.url,
+          message: err.message,
+          error: err.error,
+        });
         this.submitting = false;
       },
     });

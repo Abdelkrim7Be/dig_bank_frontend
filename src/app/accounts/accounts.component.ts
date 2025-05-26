@@ -78,25 +78,25 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                 <div class="col-4">
                   <button
                     class="btn btn-success btn-sm w-100"
-                    [routerLink]="['/accounts', account.id, 'deposit']"
+                    [routerLink]="['/customer/deposit', account.id]"
                   >
                     <i class="bi bi-plus-circle"></i>
-                    <div class="small">Deposit</div>
+                    <div class="small">Add</div>
                   </button>
                 </div>
                 <div class="col-4">
                   <button
                     class="btn btn-warning btn-sm w-100"
-                    [routerLink]="['/accounts', account.id, 'withdraw']"
+                    [routerLink]="['/customer/debit', account.id]"
                   >
                     <i class="bi bi-dash-circle"></i>
-                    <div class="small">Withdraw</div>
+                    <div class="small">Debit</div>
                   </button>
                 </div>
                 <div class="col-4">
                   <button
                     class="btn btn-info btn-sm w-100"
-                    [routerLink]="['/accounts', account.id, 'transfer']"
+                    [routerLink]="['/customer/transfer']"
                   >
                     <i class="bi bi-arrow-left-right"></i>
                     <div class="small">Transfer</div>

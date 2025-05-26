@@ -7,8 +7,11 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { AccountService } from '../shared/services/account.service';
-import { Account, DepositRequest } from '../shared/models/account.model';
+import { BankingApiService } from '../core/services/banking-api.service';
+import {
+  AccountSelectionDTO,
+  CreditRequest,
+} from '../shared/models/banking-dtos.model';
 
 import { InlineAlertComponent } from '../shared/components/inline-alert/inline-alert.component';
 
@@ -86,13 +89,13 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                     <option value="">Choose account to deposit to</option>
                     <option
                       *ngFor="let account of accounts"
-                      [value]="account.id"
+                      [value]="account.accountId"
                     >
-                      {{ account.accountNumber }} -
-                      {{ getAccountTypeDisplay(account.accountType) }} (Current:
+                      {{ account.customerUsername }} -
+                      {{ account.customerName }} ({{ account.accountType }}:
+                      Current:
                       {{
-                        account.balance
-                          | currency : account.currency : 'symbol' : '1.2-2'
+                        account.balance | currency : 'USD' : 'symbol' : '1.2-2'
                       }})
                     </option>
                   </select>
@@ -203,7 +206,8 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
                     <div class="row">
                       <div class="col-md-6">
                         <strong>Account:</strong>
-                        {{ getSelectedAccount()?.accountNumber }}<br />
+                        {{ getSelectedAccount()?.customerUsername }} -
+                        {{ getSelectedAccount()?.customerName }}<br />
                         <strong>Current Balance:</strong>
                         {{
                           getSelectedAccount()?.balance
@@ -328,15 +332,15 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
 })
 export class DepositComponent implements OnInit {
   depositForm!: FormGroup;
-  accounts: Account[] = [];
+  accounts: AccountSelectionDTO[] = [];
   loading = false;
   successMessage = '';
   errorMessage = '';
-  preselectedAccountId: number | null = null;
+  preselectedAccountId: string | null = null;
 
   constructor(
     private fb: FormBuilder,
-    private accountService: AccountService,
+    private bankingApiService: BankingApiService,
     private router: Router,
     private route: ActivatedRoute
   ) {}
@@ -348,7 +352,7 @@ export class DepositComponent implements OnInit {
     // Check if account ID is provided in route params
     this.route.params.subscribe((params) => {
       if (params['accountId']) {
-        this.preselectedAccountId = +params['accountId'];
+        this.preselectedAccountId = params['accountId'];
       }
     });
   }
@@ -366,17 +370,17 @@ export class DepositComponent implements OnInit {
   }
 
   loadAccounts(): void {
-    this.accountService.getAccounts().subscribe({
+    this.bankingApiService.getActiveAccountsForSelection().subscribe({
       next: (accounts) => {
-        this.accounts = accounts.filter((acc) => acc.status === 'ACTIVE');
+        this.accounts = accounts.filter((acc) => acc.status === 'ACTIVATED');
 
         // Set preselected account if provided
         if (this.preselectedAccountId) {
           const account = this.accounts.find(
-            (acc) => acc.id === this.preselectedAccountId
+            (acc) => acc.accountId === this.preselectedAccountId
           );
           if (account) {
-            this.depositForm.patchValue({ accountId: account.id });
+            this.depositForm.patchValue({ accountId: account.accountId });
           }
         }
       },
@@ -387,9 +391,9 @@ export class DepositComponent implements OnInit {
     });
   }
 
-  getSelectedAccount(): Account | undefined {
+  getSelectedAccount(): AccountSelectionDTO | undefined {
     const accountId = this.depositForm.get('accountId')?.value;
-    return this.accounts.find((account) => account.id == accountId);
+    return this.accounts.find((account) => account.accountId == accountId);
   }
 
   getNewBalance(): number {
@@ -412,31 +416,35 @@ export class DepositComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    const depositRequest: DepositRequest = {
-      accountId: this.depositForm.value.accountId,
+    const creditRequest: CreditRequest = {
       amount: this.depositForm.value.amount,
       description: this.depositForm.value.description,
-      reference: this.depositForm.value.reference,
     };
 
-    this.accountService.deposit(depositRequest).subscribe({
-      next: (transaction) => {
-        this.loading = false;
-        this.successMessage = `Deposit completed successfully! Transaction ID: ${transaction.id}`;
-        this.depositForm.reset();
+    this.bankingApiService
+      .credit(
+        this.depositForm.value.accountId,
+        creditRequest.amount,
+        creditRequest.description
+      )
+      .subscribe({
+        next: () => {
+          this.loading = false;
+          this.successMessage = `Deposit completed successfully!`;
+          this.depositForm.reset();
 
-        // Redirect to accounts page after 3 seconds
-        setTimeout(() => {
-          this.router.navigate(['/accounts']);
-        }, 3000);
-      },
-      error: (error) => {
-        this.loading = false;
-        this.errorMessage =
-          error.error?.message || 'Deposit failed. Please try again.';
-        console.error('Deposit error:', error);
-      },
-    });
+          // Redirect to accounts page after 3 seconds
+          setTimeout(() => {
+            this.router.navigate(['/accounts']);
+          }, 3000);
+        },
+        error: (error) => {
+          this.loading = false;
+          this.errorMessage =
+            error.error?.message || 'Deposit failed. Please try again.';
+          console.error('Deposit error:', error);
+        },
+      });
   }
 
   goBack(): void {

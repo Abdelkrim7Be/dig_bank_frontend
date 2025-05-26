@@ -106,15 +106,22 @@ export const routes: Routes = [
       {
         path: 'transactions',
         loadComponent: () =>
-          import('./transactions/transactions.component').then(
-            (c) => c.TransactionsComponent
-          ),
+          import(
+            './admin/components/transactions/admin-transactions.component'
+          ).then((c) => c.AdminTransactionsComponent),
       },
       {
         path: 'reports',
         loadComponent: () =>
           import('./admin/components/reports/reports.component').then(
             (m) => m.AdminReportsComponent
+          ),
+      },
+      {
+        path: 'transfer',
+        loadComponent: () =>
+          import('./transfer/transfer.component').then(
+            (c) => c.TransferComponent
           ),
       },
       {
@@ -148,18 +155,25 @@ export const routes: Routes = [
           import('./deposit/deposit.component').then((c) => c.DepositComponent),
       },
       {
-        path: 'withdraw',
+        path: 'debit',
         loadComponent: () =>
-          import('./withdraw/withdraw.component').then(
-            (c) => c.WithdrawComponent
-          ),
+          import('./debit/debit.component').then((c) => c.DebitComponent),
+      },
+      {
+        path: 'debit/:accountId',
+        loadComponent: () =>
+          import('./debit/debit.component').then((c) => c.DebitComponent),
+      },
+      // Keep withdraw route for backward compatibility (redirect to debit)
+      {
+        path: 'withdraw',
+        redirectTo: 'debit',
+        pathMatch: 'full',
       },
       {
         path: 'withdraw/:accountId',
-        loadComponent: () =>
-          import('./withdraw/withdraw.component').then(
-            (c) => c.WithdrawComponent
-          ),
+        redirectTo: 'debit/:accountId',
+        pathMatch: 'full',
       },
       {
         path: 'transfer',

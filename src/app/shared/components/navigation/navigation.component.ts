@@ -109,16 +109,21 @@ import { User, UserRole } from '../../../auth/models/auth.model';
                 >
                   <li>
                     <a class="dropdown-item" routerLink="/customer/deposit">
-                      <i class="bi bi-plus-circle me-2"></i>Deposit
+                      <i class="bi bi-plus-circle me-2"></i>Add Money
                     </a>
                   </li>
                   <li>
-                    <a class="dropdown-item" routerLink="/customer/withdraw">
-                      <i class="bi bi-dash-circle me-2"></i>Withdraw
+                    <a class="dropdown-item" routerLink="/customer/debit">
+                      <i class="bi bi-dash-circle me-2"></i>Debit
                     </a>
                   </li>
                   <li>
-                    <a class="dropdown-item" routerLink="/customer/transfer">
+                    <a
+                      class="dropdown-item"
+                      [routerLink]="
+                        isAdmin ? '/admin/transfer' : '/customer/transfer'
+                      "
+                    >
                       <i class="bi bi-arrow-left-right me-2"></i>Transfer
                     </a>
                   </li>

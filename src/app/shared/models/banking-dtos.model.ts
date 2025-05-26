@@ -44,6 +44,8 @@ export interface BankAccountDTO {
   status: 'CREATED' | 'ACTIVATED' | 'SUSPENDED' | 'BLOCKED';
   customer: CustomerDTO;
   type: 'CURRENT' | 'SAVING';
+  customerUsername?: string; // Added for dropdown selection
+  customerName?: string; // Added for better display
 }
 
 export interface CurrentBankAccountDTO extends BankAccountDTO {
@@ -71,6 +73,25 @@ export interface DebitRequest {
 export interface CreditRequest {
   amount: number;
   description: string;
+}
+
+// Account Selection DTO for dropdowns
+export interface AccountSelectionDTO {
+  accountId: string;
+  customerUsername: string;
+  customerName: string;
+  accountType: string;
+  balance: number;
+  status: 'CREATED' | 'ACTIVATED' | 'SUSPENDED' | 'BLOCKED';
+  displayText?: string; // Computed display format
+}
+
+// Transfer Request DTO
+export interface TransferRequestDTO {
+  sourceAccountId: string;
+  destinationAccountId: string;
+  amount: number;
+  description?: string;
 }
 
 export interface TransferRequest {
