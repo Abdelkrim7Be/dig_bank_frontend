@@ -228,7 +228,9 @@ import { LoaderComponent } from '../shared/components/loader/loader.component';
                   </thead>
                   <tbody>
                     <tr *ngFor="let transaction of recentTransactions">
-                      <td>{{ transaction.createdDate | date : 'MMM d, y' }}</td>
+                      <td>
+                        {{ transaction.operationDate | date : 'MMM d, y' }}
+                      </td>
                       <td>{{ transaction.description }}</td>
                       <td>
                         {{ getAccountDisplay(transaction.accountNumber) }}
@@ -399,7 +401,7 @@ export class DashboardComponent implements OnInit {
       .getTransactions({
         page: 0,
         size: 5,
-        sortBy: 'createdDate',
+        sortBy: 'operationDate',
         sortDirection: 'desc',
       })
       .subscribe({

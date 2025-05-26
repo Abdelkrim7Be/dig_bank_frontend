@@ -70,8 +70,8 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
               >
                 <option value="">All Accounts</option>
                 <option *ngFor="let account of accounts" [value]="account.id">
-                  {{ account.accountNumber }} -
-                  {{ getAccountTypeDisplay(account.accountType) }}
+                  {{ account.id }} -
+                  {{ getAccountDisplayText(account) }}
                 </option>
               </select>
             </div>
@@ -180,7 +180,7 @@ import { InlineAlertComponent } from '../shared/components/inline-alert/inline-a
               <tbody>
                 <tr *ngFor="let transaction of transactions">
                   <td>
-                    <div>{{ transaction.createdDate | date : 'short' }}</div>
+                    <div>{{ transaction.operationDate | date : 'short' }}</div>
                     <small class="text-muted" *ngIf="transaction.processedDate">
                       Processed:
                       {{ transaction.processedDate | date : 'short' }}
@@ -353,7 +353,7 @@ export class TransactionsComponent implements OnInit {
   filter: TransactionFilter = {
     page: 0,
     size: 20,
-    sortBy: 'createdDate',
+    sortBy: 'operationDate',
     sortDirection: 'desc',
   };
 
@@ -402,7 +402,7 @@ export class TransactionsComponent implements OnInit {
     this.filter = {
       page: 0,
       size: 20,
-      sortBy: 'createdDate',
+      sortBy: 'operationDate',
       sortDirection: 'desc',
     };
     this.loadTransactions();
@@ -413,11 +413,22 @@ export class TransactionsComponent implements OnInit {
     this.loadTransactions();
   }
 
-  getAccountTypeDisplay(type: string): string {
+  getAccountDisplayText(account: any): string {
+    const type = account?.type || account?.accountType;
+    return this.getAccountTypeDisplay(type);
+  }
+
+  getAccountTypeDisplay(type: string | undefined): string {
+    if (!type) {
+      return 'Unknown';
+    }
     return type.charAt(0) + type.slice(1).toLowerCase();
   }
 
   getTypeDisplay(type: TransactionType): string {
+    if (!type) {
+      return 'Unknown';
+    }
     return type.charAt(0) + type.slice(1).toLowerCase();
   }
 

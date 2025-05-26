@@ -1,20 +1,24 @@
 export interface Account {
-  id: number;
-  accountNumber: string;
-  accountType: AccountType;
+  id: string | number; // Backend returns string, but some places expect number
+  accountNumber?: string;
+  accountType?: AccountType;
+  type?: string; // Backend field name
   balance: number;
-  currency: string;
-  status: AccountStatus;
-  customerId: number;
+  currency?: string;
+  status: AccountStatus | string;
+  customerId?: number;
   customerName?: string;
-  createdDate: string;
-  lastModifiedDate: string;
+  createdDate?: string;
+  createDate?: string; // Backend field name
+  lastModifiedDate?: string;
   interestRate?: number;
   overdraftLimit?: number;
+  overDraft?: number; // Backend field name for current accounts
   // Additional fields to match Spring Boot entity
   createdBy?: string;
   lastModifiedBy?: string;
   version?: number;
+  customerDTO?: any; // Backend includes customer info
 }
 
 export interface CreateAccountDto {
@@ -62,7 +66,7 @@ export interface Transaction {
   description: string;
   reference?: string;
   status: TransactionStatus;
-  createdDate: string;
+  operationDate: string;
   processedDate?: string;
   fromAccountId?: number;
   toAccountId?: number;
