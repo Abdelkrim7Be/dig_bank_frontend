@@ -17,6 +17,20 @@ export interface Customer {
   lastModifiedBy: string;
   owner?: User;
   bankAccounts?: BankAccount[];
+  // Additional fields to match Spring Boot entity
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string;
+  nationalId?: string;
+  status?: CustomerStatus;
+  version?: number;
+}
+
+export enum CustomerStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  PENDING_VERIFICATION = 'PENDING_VERIFICATION',
 }
 
 export interface CreateCustomerDto {

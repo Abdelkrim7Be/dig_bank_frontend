@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
@@ -31,45 +31,26 @@ import { CommonModule } from '@angular/common';
 
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav ms-auto">
-            @if (!isLoggedIn) {
             <li class="nav-item">
-              <a class="nav-link" routerLink="/login">Login</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" routerLink="/register">Register</a>
-            </li>
-            } @else {
-            <li class="nav-item dropdown">
-              <a
-                class="nav-link dropdown-toggle d-flex align-items-center"
-                href="#"
-                role="button"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                <i class="bi bi-person-circle me-1"></i>
-                {{ username }}
+              <a class="nav-link" routerLink="/dashboard">
+                <i class="bi bi-speedometer2 me-1"></i>Dashboard
               </a>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li>
-                  <a class="dropdown-item" routerLink="/profile">
-                    <i class="bi bi-person me-2"></i>Profile
-                  </a>
-                </li>
-                <li>
-                  <a class="dropdown-item" routerLink="/settings">
-                    <i class="bi bi-gear me-2"></i>Settings
-                  </a>
-                </li>
-                <li><hr class="dropdown-divider" /></li>
-                <li>
-                  <a class="dropdown-item" href="#" (click)="logout($event)">
-                    <i class="bi bi-box-arrow-right me-2"></i>Logout
-                  </a>
-                </li>
-              </ul>
             </li>
-            }
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/accounts">
+                <i class="bi bi-wallet2 me-1"></i>Accounts
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/transactions">
+                <i class="bi bi-arrow-left-right me-1"></i>Transactions
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/customers">
+                <i class="bi bi-people me-1"></i>Customers
+              </a>
+            </li>
           </ul>
         </div>
       </div>
@@ -94,14 +75,5 @@ import { CommonModule } from '@angular/common';
   ],
 })
 export class HeaderComponent {
-  @Input() isLoggedIn: boolean = false;
-  @Input() username: string = 'User';
   @Output() toggleSidebar = new EventEmitter<void>();
-
-  logout(event: Event): void {
-    event.preventDefault();
-    // This will be implemented when we add the auth service
-    console.log('Logout clicked');
-    // authService.logout()
-  }
 }

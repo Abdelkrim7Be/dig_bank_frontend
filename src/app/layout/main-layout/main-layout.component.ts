@@ -17,22 +17,12 @@ import { CommonModule } from '@angular/common';
   ],
   template: `
     <div class="d-flex flex-column min-vh-100">
-      <app-header
-        [isLoggedIn]="isLoggedIn"
-        [username]="username"
-        (toggleSidebar)="toggleSidebar()"
-      ></app-header>
+      <app-header (toggleSidebar)="toggleSidebar()"></app-header>
 
       <div class="d-flex flex-grow-1">
-        @if (isLoggedIn) {
         <app-sidebar [collapsed]="sidebarCollapsed"></app-sidebar>
-        }
 
-        <main
-          [ngClass]="
-            isLoggedIn ? 'content-with-sidebar py-4' : 'container py-4'
-          "
-        >
+        <main class="content-with-sidebar py-4">
           <router-outlet></router-outlet>
         </main>
       </div>
@@ -59,15 +49,9 @@ import { CommonModule } from '@angular/common';
   ],
 })
 export class MainLayoutComponent implements OnInit {
-  isLoggedIn = false;
-  username = 'User';
   sidebarCollapsed = false;
 
   ngOnInit(): void {
-    // This will be updated when we implement authentication
-    // For now, let's just check if there's a token in localStorage to simulate login state
-    this.isLoggedIn = localStorage.getItem('auth_token') !== null;
-
     // Responsive behavior: collapse sidebar on small screens
     if (window.innerWidth < 768) {
       this.sidebarCollapsed = true;

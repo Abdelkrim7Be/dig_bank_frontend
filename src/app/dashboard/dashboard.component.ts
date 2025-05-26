@@ -1,13 +1,18 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../auth/services/auth.service';
-import { User } from '../auth/models/user.model';
 import { RouterLink } from '@angular/router';
+import { AccountService } from '../shared/services/account.service';
+import {
+  Account,
+  Transaction,
+  AccountSummary,
+} from '../shared/models/account.model';
+import { LoaderComponent } from '../shared/components/loader/loader.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LoaderComponent],
   template: `
     <div class="container-fluid mt-4">
       <!-- Welcome Section -->
@@ -17,9 +22,7 @@ import { RouterLink } from '@angular/router';
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center">
                 <div>
-                  <h4 class="card-title mb-1">
-                    Welcome back, {{ user?.name || 'User' }}!
-                  </h4>
+                  <h4 class="card-title mb-1">Welcome to Digital Banking!</h4>
                   <p class="text-muted">
                     Here's what's happening with your accounts today.
                   </p>
@@ -36,15 +39,20 @@ import { RouterLink } from '@angular/router';
         </div>
       </div>
 
+      <!-- Loading State -->
+      <app-loader *ngIf="loading"></app-loader>
+
       <!-- Stats Row -->
-      <div class="row mb-4">
+      <div class="row mb-4" *ngIf="!loading">
         <div class="col-md-3 col-sm-6 mb-3">
           <div class="card shadow-sm bg-primary text-white h-100">
             <div class="card-body">
               <h5 class="card-title">Total Balance</h5>
-              <h3 class="mb-0">$25,350.60</h3>
+              <h3 class="mb-0">
+                {{ getTotalBalance() | currency : 'USD' : 'symbol' : '1.2-2' }}
+              </h3>
               <p class="small mb-0">
-                <i class="bi bi-arrow-up"></i> 2.5% from last month
+                <i class="bi bi-arrow-up"></i> {{ accounts.length }} accounts
               </p>
             </div>
           </div>
@@ -53,28 +61,28 @@ import { RouterLink } from '@angular/router';
           <div class="card shadow-sm h-100">
             <div class="card-body">
               <h5 class="card-title">Active Accounts</h5>
-              <h3 class="mb-0">3</h3>
-              <p class="small text-muted mb-0">Checking, Savings, Investment</p>
+              <h3 class="mb-0">{{ getActiveAccountsCount() }}</h3>
+              <p class="small text-muted mb-0">{{ getAccountTypesText() }}</p>
             </div>
           </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
           <div class="card shadow-sm h-100">
             <div class="card-body">
-              <h5 class="card-title">Pending Transfers</h5>
-              <h3 class="mb-0">2</h3>
-              <p class="small text-muted mb-0">Total: $1,250.00</p>
+              <h5 class="card-title">Recent Transactions</h5>
+              <h3 class="mb-0">{{ recentTransactions.length }}</h3>
+              <p class="small text-muted mb-0">Last 30 days</p>
             </div>
           </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
           <div class="card shadow-sm h-100">
             <div class="card-body">
-              <h5 class="card-title">Credit Score</h5>
-              <h3 class="mb-0">760</h3>
-              <p class="small text-success mb-0">
-                <i class="bi bi-arrow-up"></i> Good
-              </p>
+              <h5 class="card-title">Account Status</h5>
+              <h3 class="mb-0">
+                <span class="badge bg-success">Active</span>
+              </h3>
+              <p class="small text-muted mb-0">All systems operational</p>
             </div>
           </div>
         </div>
@@ -219,35 +227,26 @@ import { RouterLink } from '@angular/router';
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td>Jun 12, 2023</td>
-                      <td>Grocery Store</td>
-                      <td>Checking ****1234</td>
-                      <td class="text-end text-danger">-$86.42</td>
+                    <tr *ngFor="let transaction of recentTransactions">
+                      <td>{{ transaction.createdDate | date : 'MMM d, y' }}</td>
+                      <td>{{ transaction.description }}</td>
+                      <td>
+                        {{ getAccountDisplay(transaction.accountNumber) }}
+                      </td>
+                      <td
+                        class="text-end"
+                        [ngClass]="getAmountClass(transaction.type)"
+                      >
+                        {{
+                          getAmountDisplay(transaction)
+                            | currency : 'USD' : 'symbol' : '1.2-2'
+                        }}
+                      </td>
                     </tr>
-                    <tr>
-                      <td>Jun 11, 2023</td>
-                      <td>Monthly Salary</td>
-                      <td>Checking ****1234</td>
-                      <td class="text-end text-success">+$3,250.00</td>
-                    </tr>
-                    <tr>
-                      <td>Jun 10, 2023</td>
-                      <td>Electric Bill</td>
-                      <td>Checking ****1234</td>
-                      <td class="text-end text-danger">-$145.30</td>
-                    </tr>
-                    <tr>
-                      <td>Jun 09, 2023</td>
-                      <td>Restaurant Payment</td>
-                      <td>Credit Card ****5678</td>
-                      <td class="text-end text-danger">-$58.25</td>
-                    </tr>
-                    <tr>
-                      <td>Jun 07, 2023</td>
-                      <td>Interest Earned</td>
-                      <td>Savings ****4321</td>
-                      <td class="text-end text-success">+$12.55</td>
+                    <tr *ngIf="recentTransactions.length === 0">
+                      <td colspan="4" class="text-center text-muted">
+                        No recent transactions found
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -365,23 +364,112 @@ import { RouterLink } from '@angular/router';
   ],
 })
 export class DashboardComponent implements OnInit {
-  user: User | null = null;
   today = new Date();
   lastLogin = new Date(Date.now() - 24 * 60 * 60 * 1000); // Yesterday
 
-  constructor(private authService: AuthService) {}
+  // Data properties
+  accounts: Account[] = [];
+  recentTransactions: Transaction[] = [];
+  accountSummary: AccountSummary | null = null;
+  loading = false;
+
+  constructor(private accountService: AccountService) {}
 
   ngOnInit(): void {
-    this.user = this.authService.getCurrentUser();
-    // In a real app, you would fetch dashboard data here
     this.loadDashboardData();
   }
 
   loadDashboardData(): void {
-    // This would be replaced with actual API calls in a real application
-    console.log('Loading dashboard data...');
-    // this.dashboardService.getAccountSummary().subscribe(data => {...})
-    // this.dashboardService.getRecentTransactions().subscribe(data => {...})
-    // this.dashboardService.getFinancialGoals().subscribe(data => {...})
+    this.loading = true;
+
+    // Load accounts
+    this.accountService.getAccounts().subscribe({
+      next: (accounts) => {
+        this.accounts = accounts;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading accounts:', error);
+        this.loading = false;
+      },
+    });
+
+    // Load recent transactions
+    this.accountService
+      .getTransactions({
+        page: 0,
+        size: 5,
+        sortBy: 'createdDate',
+        sortDirection: 'desc',
+      })
+      .subscribe({
+        next: (response) => {
+          this.recentTransactions = response.content;
+        },
+        error: (error) => {
+          console.error('Error loading transactions:', error);
+        },
+      });
+
+    // Load account summary
+    this.accountService.getAccountSummary().subscribe({
+      next: (summary) => {
+        this.accountSummary = summary;
+      },
+      error: (error) => {
+        console.error('Error loading account summary:', error);
+      },
+    });
+  }
+
+  getTotalBalance(): number {
+    return this.accounts.reduce((total, account) => total + account.balance, 0);
+  }
+
+  getActiveAccountsCount(): number {
+    return this.accounts.filter((account) => account.status === 'ACTIVE')
+      .length;
+  }
+
+  getAccountTypesText(): string {
+    const types = [
+      ...new Set(this.accounts.map((account) => account.accountType)),
+    ];
+    return types
+      .map((type) => type.charAt(0) + type.slice(1).toLowerCase())
+      .join(', ');
+  }
+
+  getAccountDisplay(accountNumber?: string): string {
+    if (!accountNumber) return 'N/A';
+    const account = this.accounts.find(
+      (acc) => acc.accountNumber === accountNumber
+    );
+    if (account) {
+      const type =
+        account.accountType.charAt(0) +
+        account.accountType.slice(1).toLowerCase();
+      return `${type} ****${accountNumber.slice(-4)}`;
+    }
+    return `****${accountNumber.slice(-4)}`;
+  }
+
+  getAmountClass(type: string): string {
+    switch (type) {
+      case 'DEPOSIT':
+      case 'INTEREST':
+        return 'text-success';
+      case 'WITHDRAWAL':
+      case 'FEE':
+      case 'PAYMENT':
+        return 'text-danger';
+      default:
+        return '';
+    }
+  }
+
+  getAmountDisplay(transaction: Transaction): number {
+    const isDebit = ['WITHDRAWAL', 'FEE', 'PAYMENT'].includes(transaction.type);
+    return isDebit ? -transaction.amount : transaction.amount;
   }
 }

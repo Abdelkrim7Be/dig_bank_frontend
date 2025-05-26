@@ -1,7 +1,6 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../../auth/services/auth.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -9,7 +8,7 @@ import { AuthService } from '../../auth/services/auth.service';
   imports: [RouterLink, RouterLinkActive, CommonModule],
   template: `
     <div
-      class="sidebar bg-dark text-white p-3 d-flex flex-column"
+      class="sidebar bg-primary text-white p-3 d-flex flex-column"
       [class.collapsed]="collapsed"
     >
       <div class="d-flex justify-content-between align-items-center mb-4">
@@ -59,16 +58,56 @@ import { AuthService } from '../../auth/services/auth.service';
         <li class="nav-item">
           <a
             class="nav-link text-white d-flex align-items-center"
-            routerLink="/transfers"
+            routerLink="/transfer"
             routerLinkActive="active"
           >
             <i class="bi bi-send me-2"></i>
-            <span *ngIf="!collapsed">Transfers</span>
+            <span *ngIf="!collapsed">Transfer</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link text-white d-flex align-items-center"
+            routerLink="/deposit"
+            routerLinkActive="active"
+          >
+            <i class="bi bi-plus-circle me-2"></i>
+            <span *ngIf="!collapsed">Deposit</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link text-white d-flex align-items-center"
+            routerLink="/withdraw"
+            routerLinkActive="active"
+          >
+            <i class="bi bi-dash-circle me-2"></i>
+            <span *ngIf="!collapsed">Withdraw</span>
           </a>
         </li>
 
-        <!-- Manager/Employee links -->
-        <li class="nav-item" *ngIf="hasRole(['MANAGER', 'ADMIN'])">
+        <!-- Management links -->
+        <li class="nav-item">
+          <a
+            class="nav-link text-white d-flex align-items-center"
+            routerLink="/customers"
+            routerLinkActive="active"
+          >
+            <i class="bi bi-people me-2"></i>
+            <span *ngIf="!collapsed">Customers</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link text-white d-flex align-items-center"
+            routerLink="/users"
+            routerLinkActive="active"
+          >
+            <i class="bi bi-person-gear me-2"></i>
+            <span *ngIf="!collapsed">Users</span>
+          </a>
+        </li>
+        <li class="nav-item">
           <a
             class="nav-link text-white d-flex align-items-center"
             routerLink="/products"
@@ -78,54 +117,7 @@ import { AuthService } from '../../auth/services/auth.service';
             <span *ngIf="!collapsed">Products</span>
           </a>
         </li>
-
-        <!-- User profile visible to all authenticated users -->
-        <li class="nav-item">
-          <a
-            class="nav-link text-white d-flex align-items-center"
-            routerLink="/profile"
-            routerLinkActive="active"
-          >
-            <i class="bi bi-person me-2"></i>
-            <span *ngIf="!collapsed">Profile</span>
-          </a>
-        </li>
-
-        <!-- Admin only links -->
-        <li class="nav-item" *ngIf="hasRole(['ADMIN'])">
-          <a
-            class="nav-link text-white d-flex align-items-center"
-            routerLink="/users"
-            routerLinkActive="active"
-          >
-            <i class="bi bi-people me-2"></i>
-            <span *ngIf="!collapsed">Users</span>
-          </a>
-        </li>
-
-        <!-- Advanced Admin features -->
-        <li class="nav-item" *ngIf="hasRole(['ADMIN'])">
-          <a
-            class="nav-link text-white d-flex align-items-center"
-            routerLink="/system"
-            routerLinkActive="active"
-          >
-            <i class="bi bi-gear-wide-connected me-2"></i>
-            <span *ngIf="!collapsed">System</span>
-          </a>
-        </li>
       </ul>
-
-      <div class="mt-auto">
-        <a
-          class="nav-link text-white d-flex align-items-center"
-          routerLink="/settings"
-          routerLinkActive="active"
-        >
-          <i class="bi bi-gear me-2"></i>
-          <span *ngIf="!collapsed">Settings</span>
-        </a>
-      </div>
     </div>
   `,
   styles: [
@@ -163,29 +155,8 @@ import { AuthService } from '../../auth/services/auth.service';
     `,
   ],
 })
-export class SidebarComponent implements OnInit {
+export class SidebarComponent {
   @Input() collapsed = false;
-  userRole: string | null = null;
-
-  constructor(private authService: AuthService) {}
-
-  ngOnInit(): void {
-    // Get the current user and extract the role
-    const user = this.authService.getCurrentUser();
-    if (user) {
-      this.userRole = user.role;
-    }
-  }
-
-  /**
-   * Checks if the current user has any of the specified roles
-   * @param allowedRoles Array of roles that have permission
-   * @returns true if the user has at least one of the specified roles
-   */
-  hasRole(allowedRoles: string[]): boolean {
-    if (!this.userRole) return false;
-    return allowedRoles.includes(this.userRole);
-  }
 
   toggleSidebar() {
     this.collapsed = !this.collapsed;
