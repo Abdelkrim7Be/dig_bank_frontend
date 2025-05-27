@@ -14,6 +14,7 @@ import {
 Chart.register(...registerables);
 
 interface AccountSummary {
+  id: string | number;
   accountNumber: string;
   accountType: string;
   balance: number;
@@ -44,18 +45,26 @@ interface RecentTransaction {
               Here's what's happening with your accounts today.
             </p>
           </div>
-          <div class="col-md-4 text-md-end">
-            <div class="quick-actions">
+          <div class="col-md-4">
+            <div
+              class="header-actions d-flex flex-wrap justify-content-md-end justify-content-center gap-2 mt-3 mt-md-0"
+            >
               <button
-                class="btn btn-success me-2"
+                class="btn btn-success action-btn"
                 routerLink="/customer/deposit"
               >
-                <i class="bi bi-plus-circle me-1"></i>Add Money
+                <i class="bi bi-plus-circle me-1"></i>Credit
               </button>
-              <button class="btn btn-warning me-2" routerLink="/customer/debit">
+              <button
+                class="btn btn-warning action-btn"
+                routerLink="/customer/debit"
+              >
                 <i class="bi bi-dash-circle me-1"></i>Debit
               </button>
-              <button class="btn btn-primary" routerLink="/customer/transfer">
+              <button
+                class="btn btn-primary action-btn"
+                routerLink="/customer/transfer"
+              >
                 <i class="bi bi-arrow-left-right me-1"></i>Transfer
               </button>
             </div>
@@ -97,10 +106,7 @@ interface RecentTransaction {
                   <div class="mt-3">
                     <button
                       class="btn btn-sm btn-outline-primary me-2"
-                      [routerLink]="[
-                        '/customer/accounts',
-                        account.accountNumber
-                      ]"
+                      [routerLink]="['/customer/accounts', account.id]"
                     >
                       <i class="bi bi-eye me-1"></i>View Details
                     </button>
@@ -232,16 +238,16 @@ interface RecentTransaction {
               <div class="row">
                 <div class="col-md-3 col-6 mb-3">
                   <button
-                    class="btn btn-outline-primary w-100 h-100 py-3"
+                    class="btn btn-outline-success w-100 h-100 py-3 quick-action-card"
                     routerLink="/customer/deposit"
                   >
                     <i class="bi bi-plus-circle display-6 d-block mb-2"></i>
-                    <span>Add Money</span>
+                    <span>Credit</span>
                   </button>
                 </div>
                 <div class="col-md-3 col-6 mb-3">
                   <button
-                    class="btn btn-outline-warning w-100 h-100 py-3"
+                    class="btn btn-outline-warning w-100 h-100 py-3 quick-action-card"
                     routerLink="/customer/debit"
                   >
                     <i class="bi bi-dash-circle display-6 d-block mb-2"></i>
@@ -250,18 +256,18 @@ interface RecentTransaction {
                 </div>
                 <div class="col-md-3 col-6 mb-3">
                   <button
-                    class="btn btn-outline-success w-100 h-100 py-3"
+                    class="btn btn-outline-primary w-100 h-100 py-3 quick-action-card"
                     routerLink="/customer/transfer"
                   >
                     <i
                       class="bi bi-arrow-left-right display-6 d-block mb-2"
                     ></i>
-                    <span>Transfer Funds</span>
+                    <span>Transfer</span>
                   </button>
                 </div>
                 <div class="col-md-3 col-6 mb-3">
                   <button
-                    class="btn btn-outline-info w-100 h-100 py-3"
+                    class="btn btn-outline-info w-100 h-100 py-3 quick-action-card"
                     routerLink="/customer/transaction-history"
                   >
                     <i class="bi bi-clock-history display-6 d-block mb-2"></i>
@@ -349,6 +355,50 @@ interface RecentTransaction {
         text-align: center;
       }
 
+      .header-actions {
+        align-items: center;
+      }
+
+      .action-btn {
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.9rem;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border: none;
+        min-width: 90px;
+      }
+
+      .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .action-btn i {
+        font-size: 1rem;
+      }
+
+      .quick-action-card {
+        transition: all 0.3s ease-in-out;
+        border-radius: 12px;
+        border-width: 2px;
+        font-weight: 600;
+      }
+
+      .quick-action-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      }
+
+      .quick-action-card i {
+        transition: transform 0.2s ease-in-out;
+      }
+
+      .quick-action-card:hover i {
+        transform: scale(1.1);
+      }
+
       @media (max-width: 768px) {
         .customer-dashboard {
           padding: 1rem;
@@ -359,8 +409,36 @@ interface RecentTransaction {
           text-align: center;
         }
 
-        .quick-actions {
+        .header-actions {
+          justify-content: center !important;
           margin-top: 1rem;
+        }
+
+        .action-btn {
+          min-width: 80px;
+          padding: 0.5rem 1rem;
+          font-size: 0.85rem;
+        }
+
+        .quick-action-card {
+          min-height: 100px;
+          padding: 1rem !important;
+        }
+
+        .quick-action-card i {
+          font-size: 2rem !important;
+        }
+      }
+
+      @media (max-width: 576px) {
+        .header-actions {
+          flex-direction: column;
+          gap: 0.5rem !important;
+        }
+
+        .action-btn {
+          width: 100%;
+          max-width: 200px;
         }
       }
     `,
@@ -491,6 +569,7 @@ export class CustomerDashboardComponent implements OnInit {
 
   private mapBankAccountsToSummary(accounts: BankAccount[]): AccountSummary[] {
     return accounts.map((account) => ({
+      id: account.id,
       accountNumber: this.maskAccountNumber(account.id),
       accountType: this.formatAccountType(account.type),
       balance: account.balance || 0,
@@ -524,6 +603,7 @@ export class CustomerDashboardComponent implements OnInit {
 
   private mapBackendAccountsData(accounts: any[]): AccountSummary[] {
     return accounts.map((account) => ({
+      id: account.id,
       accountNumber: this.maskAccountNumber(account.id),
       accountType: this.formatAccountType(account.type),
       balance: account.balance || 0,
@@ -535,12 +615,14 @@ export class CustomerDashboardComponent implements OnInit {
     // Convert backend data to component format - fallback method
     return [
       {
+        id: 'demo-account-1',
         accountNumber: '****1234',
         accountType: 'Checking',
         balance: 5420.5,
         status: 'ACTIVE',
       },
       {
+        id: 'demo-account-2',
         accountNumber: '****5678',
         accountType: 'Savings',
         balance: 12750.25,
@@ -571,12 +653,14 @@ export class CustomerDashboardComponent implements OnInit {
   private loadDefaultData(): void {
     this.accounts = [
       {
+        id: 'demo-account-1',
         accountNumber: '****1234',
         accountType: 'Checking',
         balance: 5420.5,
         status: 'ACTIVE',
       },
       {
+        id: 'demo-account-2',
         accountNumber: '****5678',
         accountType: 'Savings',
         balance: 12750.25,

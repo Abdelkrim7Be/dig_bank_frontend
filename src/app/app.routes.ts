@@ -161,22 +161,30 @@ export const routes: Routes = [
       {
         path: 'deposit',
         loadComponent: () =>
-          import('./deposit/deposit.component').then((c) => c.DepositComponent),
+          import(
+            './customer/components/transactions/customer-deposit.component'
+          ).then((c) => c.CustomerDepositComponent),
       },
       {
         path: 'deposit/:accountId',
         loadComponent: () =>
-          import('./deposit/deposit.component').then((c) => c.DepositComponent),
+          import(
+            './customer/components/transactions/customer-deposit.component'
+          ).then((c) => c.CustomerDepositComponent),
       },
       {
         path: 'debit',
         loadComponent: () =>
-          import('./debit/debit.component').then((c) => c.DebitComponent),
+          import(
+            './customer/components/transactions/customer-debit.component'
+          ).then((c) => c.CustomerDebitComponent),
       },
       {
         path: 'debit/:accountId',
         loadComponent: () =>
-          import('./debit/debit.component').then((c) => c.DebitComponent),
+          import(
+            './customer/components/transactions/customer-debit.component'
+          ).then((c) => c.CustomerDebitComponent),
       },
       // Keep withdraw route for backward compatibility (redirect to debit)
       {
@@ -213,9 +221,9 @@ export const routes: Routes = [
       {
         path: 'transfer',
         loadComponent: () =>
-          import('./transfer/transfer.component').then(
-            (c) => c.TransferComponent
-          ),
+          import(
+            './customer/components/transactions/customer-transfer.component'
+          ).then((c) => c.CustomerTransferComponent),
       },
       {
         path: '',

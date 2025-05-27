@@ -123,14 +123,14 @@ import { AuthService } from '../../../auth/services/auth.service';
                   [routerLink]="['/customer/deposit', account.id]"
                   [disabled]="account.status !== 'ACTIVATED'"
                 >
-                  <i class="bi bi-plus-circle me-2"></i>Add Money
+                  <i class="bi bi-plus-circle me-2"></i>Credit
                 </button>
                 <button
                   class="btn btn-warning"
                   [routerLink]="['/customer/debit', account.id]"
                   [disabled]="account.status !== 'ACTIVATED'"
                 >
-                  <i class="bi bi-dash-circle me-2"></i>Debit Money
+                  <i class="bi bi-dash-circle me-2"></i>Debit
                 </button>
                 <button
                   class="btn btn-primary"

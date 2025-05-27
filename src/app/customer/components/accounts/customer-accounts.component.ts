@@ -68,7 +68,6 @@ import { AuthService } from '../../../auth/services/auth.service';
                   {{ account.status }}
                 </span>
               </div>
-
               <!-- Balance -->
               <div class="balance-section mb-3">
                 <h3 class="balance-amount mb-0">
@@ -107,7 +106,7 @@ import { AuthService } from '../../../auth/services/auth.service';
                       [disabled]="account.status !== 'ACTIVATED'"
                     >
                       <i class="bi bi-plus-circle me-1"></i>
-                      Add Money
+                      Credit
                     </button>
                   </div>
                   <div class="col-6">
