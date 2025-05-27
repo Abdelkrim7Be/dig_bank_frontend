@@ -300,6 +300,72 @@ import { BankingValidators } from '../../../shared/validators/banking-validators
                       ></i>
                     </button>
                   </div>
+
+                  <!-- Password Strength Indicator -->
+                  <div *ngIf="password?.value" class="mt-2">
+                    <small class="text-muted">Password Requirements:</small>
+                    <div class="small">
+                      <div [class]="getPasswordRequirementClass('length')">
+                        <i
+                          class="bi"
+                          [class.bi-check-circle-fill]="
+                            checkPasswordRequirement('length')
+                          "
+                          [class.bi-circle]="
+                            !checkPasswordRequirement('length')
+                          "
+                        ></i>
+                        At least 8 characters
+                      </div>
+                      <div [class]="getPasswordRequirementClass('lowercase')">
+                        <i
+                          class="bi"
+                          [class.bi-check-circle-fill]="
+                            checkPasswordRequirement('lowercase')
+                          "
+                          [class.bi-circle]="
+                            !checkPasswordRequirement('lowercase')
+                          "
+                        ></i>
+                        One lowercase letter
+                      </div>
+                      <div [class]="getPasswordRequirementClass('uppercase')">
+                        <i
+                          class="bi"
+                          [class.bi-check-circle-fill]="
+                            checkPasswordRequirement('uppercase')
+                          "
+                          [class.bi-circle]="
+                            !checkPasswordRequirement('uppercase')
+                          "
+                        ></i>
+                        One uppercase letter
+                      </div>
+                      <div [class]="getPasswordRequirementClass('digit')">
+                        <i
+                          class="bi"
+                          [class.bi-check-circle-fill]="
+                            checkPasswordRequirement('digit')
+                          "
+                          [class.bi-circle]="!checkPasswordRequirement('digit')"
+                        ></i>
+                        One number
+                      </div>
+                      <div [class]="getPasswordRequirementClass('special')">
+                        <i
+                          class="bi"
+                          [class.bi-check-circle-fill]="
+                            checkPasswordRequirement('special')
+                          "
+                          [class.bi-circle]="
+                            !checkPasswordRequirement('special')
+                          "
+                        ></i>
+                        One special character
+                      </div>
+                    </div>
+                  </div>
+
                   <div
                     class="invalid-feedback"
                     *ngIf="
@@ -312,6 +378,31 @@ import { BankingValidators } from '../../../shared/validators/banking-validators
                     </div>
                     <div *ngIf="password?.errors?.['minlength']">
                       Password must be at least 8 characters
+                    </div>
+                    <div *ngIf="password?.errors?.['strongPassword']">
+                      <div
+                        *ngIf="password?.errors?.['strongPassword']?.minLength"
+                      >
+                        • {{ password?.errors?.['strongPassword']?.minLength }}
+                      </div>
+                      <div
+                        *ngIf="password?.errors?.['strongPassword']?.lowercase"
+                      >
+                        • {{ password?.errors?.['strongPassword']?.lowercase }}
+                      </div>
+                      <div
+                        *ngIf="password?.errors?.['strongPassword']?.uppercase"
+                      >
+                        • {{ password?.errors?.['strongPassword']?.uppercase }}
+                      </div>
+                      <div *ngIf="password?.errors?.['strongPassword']?.digit">
+                        • {{ password?.errors?.['strongPassword']?.digit }}
+                      </div>
+                      <div
+                        *ngIf="password?.errors?.['strongPassword']?.special"
+                      >
+                        • {{ password?.errors?.['strongPassword']?.special }}
+                      </div>
                     </div>
                     <div *ngIf="password?.errors?.['pattern']">
                       Password must contain at least one uppercase letter, one
@@ -383,6 +474,18 @@ import { BankingValidators } from '../../../shared/validators/banking-validators
                   </div>
                 </div>
 
+                <!-- Debug Info (only in development) -->
+                <div
+                  *ngIf="showDebugInfo()"
+                  class="alert alert-info small mb-3"
+                >
+                  <strong>Debug Info:</strong><br />
+                  Form Valid: {{ registerForm.valid }}<br />
+                  <div *ngFor="let control of getInvalidControls()">
+                    {{ control.name }}: {{ control.errors | json }}
+                  </div>
+                </div>
+
                 <!-- Submit Button -->
                 <button
                   type="submit"
@@ -396,6 +499,18 @@ import { BankingValidators } from '../../../shared/validators/banking-validators
                   <i *ngIf="!loading" class="bi bi-person-plus me-2"></i>
                   {{ loading ? 'Creating Account...' : 'Create Account' }}
                 </button>
+
+                <!-- Help Text for Button -->
+                <div
+                  *ngIf="registerForm.invalid && !loading"
+                  class="text-center mb-3"
+                >
+                  <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Please fill all required fields correctly to enable the
+                    Create Account button
+                  </small>
+                </div>
 
                 <!-- Login Link -->
                 <div class="text-center">
@@ -599,5 +714,52 @@ export class RegisterComponent implements OnInit {
   }
   get acceptTerms() {
     return this.registerForm.get('acceptTerms');
+  }
+
+  // Debug methods to help identify validation issues
+  showDebugInfo(): boolean {
+    // Show debug info in development or when form is invalid
+    return !this.registerForm.valid;
+  }
+
+  getInvalidControls(): Array<{ name: string; errors: any }> {
+    const invalidControls: Array<{ name: string; errors: any }> = [];
+
+    Object.keys(this.registerForm.controls).forEach((key) => {
+      const control = this.registerForm.get(key);
+      if (control && control.invalid) {
+        invalidControls.push({
+          name: key,
+          errors: control.errors,
+        });
+      }
+    });
+
+    return invalidControls;
+  }
+
+  // Password strength helper methods
+  checkPasswordRequirement(requirement: string): boolean {
+    const password = this.password?.value || '';
+
+    switch (requirement) {
+      case 'length':
+        return password.length >= 8;
+      case 'lowercase':
+        return /[a-z]/.test(password);
+      case 'uppercase':
+        return /[A-Z]/.test(password);
+      case 'digit':
+        return /\d/.test(password);
+      case 'special':
+        return /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+      default:
+        return false;
+    }
+  }
+
+  getPasswordRequirementClass(requirement: string): string {
+    const isValid = this.checkPasswordRequirement(requirement);
+    return isValid ? 'text-success' : 'text-muted';
   }
 }

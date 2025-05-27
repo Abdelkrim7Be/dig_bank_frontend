@@ -270,52 +270,150 @@ import { InlineAlertComponent } from '../../../shared/components/inline-alert/in
             </table>
           </div>
 
-          <!-- Pagination -->
+          <!-- Enhanced Pagination -->
           <div
             *ngIf="pagedResponse && pagedResponse.totalPages > 1"
-            class="d-flex justify-content-between align-items-center p-3"
+            class="card-footer bg-white"
           >
-            <div class="text-muted">
-              Showing {{ pagedResponse.size * pagedResponse.number + 1 }} to
-              {{
-                Math.min(
-                  pagedResponse.size * (pagedResponse.number + 1),
-                  pagedResponse.totalElements
-                )
-              }}
-              of {{ pagedResponse.totalElements }} entries
+            <div class="row align-items-center">
+              <!-- Pagination Info -->
+              <div class="col-md-6 mb-2 mb-md-0">
+                <div class="pagination-info">
+                  <small class="text-muted">
+                    Showing {{ getStartRecord() }} to {{ getEndRecord() }} of
+                    {{ pagedResponse.totalElements }} transactions
+                  </small>
+                </div>
+              </div>
+
+              <!-- Pagination Controls -->
+              <div class="col-md-6">
+                <nav aria-label="Transaction pagination">
+                  <ul
+                    class="pagination pagination-sm justify-content-md-end justify-content-center mb-0"
+                  >
+                    <!-- First Page -->
+                    <li
+                      class="page-item"
+                      [class.disabled]="pagedResponse.first"
+                    >
+                      <button
+                        class="page-link"
+                        (click)="goToPage(0)"
+                        [disabled]="pagedResponse.first"
+                        title="First page"
+                      >
+                        <i class="bi bi-chevron-double-left"></i>
+                      </button>
+                    </li>
+
+                    <!-- Previous Page -->
+                    <li
+                      class="page-item"
+                      [class.disabled]="pagedResponse.first"
+                    >
+                      <button
+                        class="page-link"
+                        (click)="goToPage(pagedResponse.number - 1)"
+                        [disabled]="pagedResponse.first"
+                        title="Previous page"
+                      >
+                        <i class="bi bi-chevron-left"></i>
+                      </button>
+                    </li>
+
+                    <!-- Page Numbers -->
+                    <li
+                      *ngFor="let page of getVisiblePages()"
+                      class="page-item"
+                      [class.active]="page === pagedResponse.number + 1"
+                    >
+                      <button
+                        *ngIf="page !== '...'; else ellipsis"
+                        class="page-link"
+                        (click)="goToPage(+page - 1)"
+                        [disabled]="page === pagedResponse.number + 1"
+                      >
+                        {{ page }}
+                      </button>
+                      <ng-template #ellipsis>
+                        <span class="page-link">...</span>
+                      </ng-template>
+                    </li>
+
+                    <!-- Next Page -->
+                    <li class="page-item" [class.disabled]="pagedResponse.last">
+                      <button
+                        class="page-link"
+                        (click)="goToPage(pagedResponse.number + 1)"
+                        [disabled]="pagedResponse.last"
+                        title="Next page"
+                      >
+                        <i class="bi bi-chevron-right"></i>
+                      </button>
+                    </li>
+
+                    <!-- Last Page -->
+                    <li class="page-item" [class.disabled]="pagedResponse.last">
+                      <button
+                        class="page-link"
+                        (click)="goToPage(pagedResponse.totalPages - 1)"
+                        [disabled]="pagedResponse.last"
+                        title="Last page"
+                      >
+                        <i class="bi bi-chevron-double-right"></i>
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
             </div>
-            <nav>
-              <ul class="pagination mb-0">
-                <li class="page-item" [class.disabled]="pagedResponse.first">
-                  <button
-                    class="page-link"
-                    (click)="goToPage(pagedResponse.number - 1)"
-                    [disabled]="pagedResponse.first"
+
+            <!-- Page Size Selector -->
+            <div class="row mt-3">
+              <div class="col-md-6">
+                <div class="d-flex align-items-center">
+                  <label class="form-label me-2 mb-0">Items per page:</label>
+                  <select
+                    class="form-select form-select-sm"
+                    style="width: auto;"
+                    [(ngModel)]="filter.size"
+                    (change)="changePageSize()"
                   >
-                    Previous
-                  </button>
-                </li>
-                <li
-                  *ngFor="let page of getPageNumbers()"
-                  class="page-item"
-                  [class.active]="page === pagedResponse.number"
-                >
-                  <button class="page-link" (click)="goToPage(page)">
-                    {{ page + 1 }}
-                  </button>
-                </li>
-                <li class="page-item" [class.disabled]="pagedResponse.last">
-                  <button
-                    class="page-link"
-                    (click)="goToPage(pagedResponse.number + 1)"
-                    [disabled]="pagedResponse.last"
-                  >
-                    Next
-                  </button>
-                </li>
-              </ul>
-            </nav>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Quick Jump -->
+              <div class="col-md-6">
+                <div class="d-flex align-items-center justify-content-md-end">
+                  <label class="form-label me-2 mb-0">Go to page:</label>
+                  <div class="input-group" style="width: 120px;">
+                    <input
+                      type="number"
+                      class="form-control form-control-sm"
+                      [value]="pagedResponse.number + 1"
+                      (keyup.enter)="jumpToPage($event)"
+                      [min]="1"
+                      [max]="pagedResponse.totalPages"
+                      placeholder="Page"
+                    />
+                    <button
+                      class="btn btn-outline-secondary btn-sm"
+                      type="button"
+                      (click)="jumpToPage($event)"
+                      title="Go to page"
+                    >
+                      <i class="bi bi-arrow-right"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -783,8 +881,84 @@ Try the "Load Without Filters" button to see if basic endpoint works.`;
   }
 
   goToPage(page: number): void {
-    this.filter.page = page;
+    if (page >= 0 && page < (this.pagedResponse?.totalPages || 0)) {
+      this.filter.page = page;
+      this.loadTransactions();
+    }
+  }
+
+  getStartRecord(): number {
+    if (!this.pagedResponse) return 0;
+    return this.pagedResponse.number * this.pagedResponse.size + 1;
+  }
+
+  getEndRecord(): number {
+    if (!this.pagedResponse) return 0;
+    const start = this.getStartRecord();
+    const remaining = this.pagedResponse.totalElements - (start - 1);
+    return start - 1 + Math.min(this.pagedResponse.size, remaining);
+  }
+
+  getVisiblePages(): (number | string)[] {
+    if (!this.pagedResponse) return [];
+
+    const totalPages = this.pagedResponse.totalPages;
+    const currentPage = this.pagedResponse.number + 1; // Convert to 1-based
+    const visiblePages: (number | string)[] = [];
+
+    if (totalPages <= 7) {
+      // Show all pages if 7 or fewer
+      for (let i = 1; i <= totalPages; i++) {
+        visiblePages.push(i);
+      }
+    } else {
+      // Always show first page
+      visiblePages.push(1);
+
+      if (currentPage > 4) {
+        visiblePages.push('...');
+      }
+
+      // Show pages around current page
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      for (let i = start; i <= end; i++) {
+        visiblePages.push(i);
+      }
+
+      if (currentPage < totalPages - 3) {
+        visiblePages.push('...');
+      }
+
+      // Always show last page
+      if (totalPages > 1) {
+        visiblePages.push(totalPages);
+      }
+    }
+
+    return visiblePages;
+  }
+
+  changePageSize(): void {
+    this.filter.page = 0; // Reset to first page when changing page size
     this.loadTransactions();
+  }
+
+  jumpToPage(event: any): void {
+    const target = event.target || event.currentTarget;
+    const pageNumber = parseInt(
+      target.value || target.previousElementSibling?.value,
+      10
+    );
+
+    if (
+      pageNumber &&
+      pageNumber >= 1 &&
+      pageNumber <= (this.pagedResponse?.totalPages || 0)
+    ) {
+      this.goToPage(pageNumber - 1); // Convert to 0-based
+    }
   }
 
   getPageNumbers(): number[] {

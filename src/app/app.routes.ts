@@ -6,6 +6,7 @@ import {
   GuestGuard,
 } from './auth/guards/auth.guard';
 import { UserRole } from './auth/models/auth.model';
+import { AuthDiagnosticComponent } from './debug/auth-diagnostic.component';
 
 export const routes: Routes = [
   // Default redirect
@@ -13,6 +14,12 @@ export const routes: Routes = [
     path: '',
     redirectTo: '/auth/login',
     pathMatch: 'full',
+  },
+
+  // Diagnostic route (no guards - always accessible)
+  {
+    path: 'diagnostic',
+    component: AuthDiagnosticComponent,
   },
 
   // Authentication routes (for guests only)
@@ -181,6 +188,27 @@ export const routes: Routes = [
         path: 'withdraw/:accountId',
         redirectTo: 'debit/:accountId',
         pathMatch: 'full',
+      },
+      {
+        path: 'accounts',
+        loadComponent: () =>
+          import(
+            './customer/components/accounts/customer-accounts.component'
+          ).then((c) => c.CustomerAccountsComponent),
+      },
+      {
+        path: 'accounts/:id',
+        loadComponent: () =>
+          import(
+            './customer/components/accounts/customer-account-details.component'
+          ).then((c) => c.CustomerAccountDetailsComponent),
+      },
+      {
+        path: 'transaction-history',
+        loadComponent: () =>
+          import(
+            './customer/components/transactions/customer-transactions.component'
+          ).then((c) => c.CustomerTransactionsComponent),
       },
       {
         path: 'transfer',

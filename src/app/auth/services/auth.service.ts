@@ -57,7 +57,19 @@ export class AuthService {
       .pipe(
         tap((response) => {
           console.log('Login response received:', response);
+          console.log('Token from response:', response.token);
+          console.log('Token length:', response.token?.length);
+
           this.setToken(response.token);
+
+          // Verify token was stored
+          const storedToken = this.getToken();
+          console.log('Token stored successfully:', !!storedToken);
+          console.log(
+            'Stored token matches response:',
+            storedToken === response.token
+          );
+
           // Convert AuthResponse to User format
           const user: User = {
             id: 0, // Will be set from JWT payload
@@ -73,9 +85,21 @@ export class AuthService {
           };
           console.log('User object created:', user);
           console.log('User role:', user.role);
+
           this.setCurrentUser(user);
+
+          // Verify user was stored
+          const storedUser = this.getCurrentUser();
+          console.log('User stored successfully:', !!storedUser);
+          console.log('Stored user role:', storedUser?.role);
+
           this.currentUserSubject.next(user);
           this.isAuthenticatedSubject.next(true);
+
+          console.log(
+            'Authentication state updated - isAuthenticated:',
+            this.isAuthenticated()
+          );
         }),
         catchError((error) => {
           console.error('Login error:', error);

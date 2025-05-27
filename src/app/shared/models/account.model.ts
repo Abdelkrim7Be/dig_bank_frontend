@@ -21,6 +21,9 @@ export interface Account {
   customerDTO?: any; // Backend includes customer info
 }
 
+// Type alias for backward compatibility
+export type BankAccount = Account;
+
 export interface CreateAccountDto {
   accountType: AccountType;
   customerId: number;
@@ -58,7 +61,7 @@ export interface AccountSummary {
 
 export interface Transaction {
   id: number;
-  accountId: number;
+  accountId: string | number; // Support both string UUIDs and numeric IDs
   accountNumber?: string;
   type: TransactionType;
   amount: number;
@@ -68,8 +71,8 @@ export interface Transaction {
   status: TransactionStatus;
   operationDate: string;
   processedDate?: string;
-  fromAccountId?: number;
-  toAccountId?: number;
+  fromAccountId?: string | number;
+  toAccountId?: string | number;
   fromAccountNumber?: string;
   toAccountNumber?: string;
 }

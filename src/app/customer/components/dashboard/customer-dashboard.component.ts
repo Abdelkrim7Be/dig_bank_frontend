@@ -4,6 +4,8 @@ import { RouterModule } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import { AuthService } from '../../../auth/services/auth.service';
 import { User } from '../../../auth/models/auth.model';
+import { AccountService } from '../../../shared/services/account.service';
+import { BankAccount, Transaction } from '../../../shared/models/account.model';
 import {
   DashboardService,
   CustomerDashboardData,
@@ -374,7 +376,8 @@ export class CustomerDashboardComponent implements OnInit {
 
   constructor(
     private authService: AuthService,
-    private dashboardService: DashboardService
+    private dashboardService: DashboardService,
+    private accountService: AccountService
   ) {}
 
   ngOnInit(): void {
@@ -390,23 +393,93 @@ export class CustomerDashboardComponent implements OnInit {
     console.log('Current user:', this.currentUser);
     console.log('Auth token:', localStorage.getItem('digital-banking-token'));
 
-    this.dashboardService.getCustomerDashboard().subscribe({
-      next: (data: any) => {
-        console.log('Customer dashboard data received:', data);
-        // Map the backend data to component properties
-        this.accounts = this.mapBackendAccountsData(data.accounts || []);
-        this.recentTransactions = data.recentTransactions || [];
-        this.loading = false;
-        this.initializeChart();
+    // Load customer accounts using the enhanced account service
+    this.accountService.getCustomerAccounts().subscribe({
+      next: (accounts: BankAccount[]) => {
+        console.log('Customer accounts received:', accounts);
+        this.accounts = this.mapBankAccountsToSummary(accounts);
+        this.loadRecentTransactions();
       },
       error: (error) => {
-        console.error('Error loading customer dashboard data:', error);
+        console.error('Error loading customer accounts:', error);
         console.error('Error details:', {
           status: error.status,
           statusText: error.statusText,
           url: error.url,
           message: error.message,
         });
+
+        // Try fallback with dashboard service
+        this.loadDashboardDataFallback();
+      },
+    });
+  }
+
+  private loadRecentTransactions(): void {
+    // Load recent transactions for the customer
+    const transactionFilter = {
+      page: 0,
+      size: 5,
+      sortBy: 'operationDate',
+      sortDirection: 'desc' as 'desc',
+    };
+
+    // Try customer-specific method first, then fallback
+    this.accountService.getCustomerTransactions(transactionFilter).subscribe({
+      next: (response) => {
+        console.log('Recent transactions received:', response);
+        this.recentTransactions = this.mapTransactionsToRecentTransactions(
+          response.content || []
+        );
+        this.loading = false;
+        this.initializeChart();
+      },
+      error: (error) => {
+        console.error(
+          'Error loading recent transactions with customer method, trying general method:',
+          error
+        );
+
+        // Fallback to general method
+        this.accountService.getTransactions(transactionFilter).subscribe({
+          next: (response) => {
+            console.log('Recent transactions received (fallback):', response);
+            this.recentTransactions = this.mapTransactionsToRecentTransactions(
+              response.content || []
+            );
+            this.loading = false;
+            this.initializeChart();
+          },
+          error: (generalError) => {
+            console.error(
+              'Error loading recent transactions (all methods failed):',
+              generalError
+            );
+            // Continue without recent transactions
+            this.recentTransactions = [];
+            this.loading = false;
+            this.initializeChart();
+          },
+        });
+      },
+    });
+  }
+
+  private loadDashboardDataFallback(): void {
+    // Fallback to original dashboard service
+    this.dashboardService.getCustomerDashboard().subscribe({
+      next: (data: any) => {
+        console.log('Customer dashboard data received (fallback):', data);
+        this.accounts = this.mapBackendAccountsData(data.accounts || []);
+        this.recentTransactions = data.recentTransactions || [];
+        this.loading = false;
+        this.initializeChart();
+      },
+      error: (error) => {
+        console.error(
+          'Error loading customer dashboard data (fallback):',
+          error
+        );
         this.error = 'Failed to load dashboard data. Please try again.';
         this.loading = false;
         // Load default data for demo
@@ -414,6 +487,39 @@ export class CustomerDashboardComponent implements OnInit {
         this.initializeChart();
       },
     });
+  }
+
+  private mapBankAccountsToSummary(accounts: BankAccount[]): AccountSummary[] {
+    return accounts.map((account) => ({
+      accountNumber: this.maskAccountNumber(account.id),
+      accountType: this.formatAccountType(account.type),
+      balance: account.balance || 0,
+      status: account.status || 'ACTIVATED',
+    }));
+  }
+
+  private mapTransactionsToRecentTransactions(
+    transactions: Transaction[]
+  ): RecentTransaction[] {
+    return transactions.map((transaction) => ({
+      id: transaction.id?.toString() || '',
+      type: transaction.type,
+      amount: transaction.amount,
+      description:
+        transaction.description ||
+        this.getTransactionDescription(transaction.type),
+      date: new Date(transaction.operationDate),
+      status: transaction.status || 'COMPLETED',
+    }));
+  }
+
+  private getTransactionDescription(type: string): string {
+    const descriptions = {
+      DEPOSIT: 'Money Added',
+      WITHDRAWAL: 'Money Withdrawn',
+      TRANSFER: 'Money Transferred',
+    };
+    return descriptions[type as keyof typeof descriptions] || 'Transaction';
   }
 
   private mapBackendAccountsData(accounts: any[]): AccountSummary[] {
@@ -443,16 +549,19 @@ export class CustomerDashboardComponent implements OnInit {
     ];
   }
 
-  private maskAccountNumber(accountId: string): string {
-    if (!accountId || accountId.length < 4) return '****';
-    return '****' + accountId.slice(-4);
+  private maskAccountNumber(accountId: string | number): string {
+    const accountIdStr = accountId?.toString() || '';
+    if (!accountIdStr || accountIdStr.length < 4) return '****';
+    return '****' + accountIdStr.slice(-4);
   }
 
-  private formatAccountType(type: string): string {
+  private formatAccountType(type?: string): string {
     switch (type?.toUpperCase()) {
       case 'CURRENT':
+      case 'CURRENTACCOUNT':
         return 'Checking';
       case 'SAVING':
+      case 'SAVINGACCOUNT':
         return 'Savings';
       default:
         return type || 'Unknown';

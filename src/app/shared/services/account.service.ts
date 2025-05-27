@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap, catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import {
   Account,
+  BankAccount,
   CreateAccountDto,
   UpdateAccountDto,
   AccountSummary,
@@ -34,7 +35,7 @@ export class AccountService {
     );
   }
 
-  getAccountById(id: number): Observable<Account> {
+  getAccountById(id: string | number): Observable<Account> {
     return this.http.get<Account>(
       `${this.apiUrl}${environment.endpoints.accounts}/${id}`
     );
@@ -43,13 +44,6 @@ export class AccountService {
   getAccountsByCustomerId(customerId: number): Observable<Account[]> {
     return this.http.get<Account[]>(
       `${this.apiUrl}${environment.endpoints.accounts}/customer/${customerId}`
-    );
-  }
-
-  // Customer-specific account endpoints
-  getCustomerAccounts(): Observable<Account[]> {
-    return this.http.get<Account[]>(
-      `${this.apiUrl}${environment.endpoints.customer.accounts}`
     );
   }
 
@@ -206,6 +200,33 @@ export class AccountService {
           }
         }
 
+        // If customer endpoint returns 403, try fallback to general transactions endpoint
+        if (error.status === 403 && currentUser?.role === UserRole.CUSTOMER) {
+          console.log(
+            'getTransactions - Customer endpoint returned 403, trying fallback...'
+          );
+          const fallbackEndpoint = `${this.apiUrl}/transactions`;
+          console.log(
+            'getTransactions - Using fallback endpoint:',
+            fallbackEndpoint
+          );
+
+          return this.http
+            .get<PagedResponse<Transaction>>(fallbackEndpoint, { params })
+            .pipe(
+              tap((response) => {
+                console.log('getTransactions - Fallback success:', response);
+              }),
+              catchError((fallbackError) => {
+                console.error(
+                  'getTransactions - Fallback also failed:',
+                  fallbackError
+                );
+                return throwError(() => error); // Return original error
+              })
+            );
+        }
+
         // Re-throw the error for component handling
         return throwError(() => error);
       })
@@ -333,5 +354,187 @@ export class AccountService {
       params,
       responseType: 'blob',
     });
+  }
+
+  // Customer-specific account methods
+  getCustomerAccounts(): Observable<BankAccount[]> {
+    const endpoint = `${this.apiUrl}/customer/accounts`;
+    console.log('=== getCustomerAccounts DEBUG START ===');
+    console.log('Endpoint:', endpoint);
+    console.log(
+      'Current token:',
+      this.authService.getToken()?.substring(0, 30) + '...'
+    );
+    console.log('Token exists:', !!this.authService.getToken());
+    console.log('User authenticated:', this.authService.isAuthenticated());
+    console.log('Current user:', this.authService.getCurrentUser());
+    console.log(
+      'LocalStorage token:',
+      localStorage.getItem('digital-banking-token')?.substring(0, 30) + '...'
+    );
+
+    return this.http.get<BankAccount[]>(endpoint).pipe(
+      tap((accounts) => {
+        console.log('✅ getCustomerAccounts - SUCCESS:', accounts);
+        console.log('Number of accounts:', accounts.length);
+        console.log('=== getCustomerAccounts DEBUG SUCCESS END ===');
+      }),
+      catchError((error) => {
+        console.error('❌ getCustomerAccounts - ERROR:', error);
+        console.error('Error status:', error.status);
+        console.error('Error message:', error.message);
+        console.error('Error URL:', error.url);
+        console.error('Error headers:', error.headers);
+        console.log('=== getCustomerAccounts DEBUG ERROR END ===');
+        return throwError(() => error);
+      })
+    );
+  }
+
+  getCustomerAccountById(accountId: string): Observable<BankAccount> {
+    const endpoint = `${this.apiUrl}/customer/accounts/${accountId}`;
+    console.log('getCustomerAccountById - Using endpoint:', endpoint);
+
+    return this.http.get<BankAccount>(endpoint).pipe(
+      tap((account) => {
+        console.log('getCustomerAccountById - Success:', account);
+      }),
+      catchError((error) => {
+        console.error('getCustomerAccountById - Error:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Alternative method for customer transactions with multiple fallbacks
+  getCustomerTransactions(
+    filter?: TransactionFilter
+  ): Observable<PagedResponse<Transaction>> {
+    let params = new HttpParams();
+
+    if (filter) {
+      if (filter.accountId !== undefined && filter.accountId !== null) {
+        const accountIdStr =
+          typeof filter.accountId === 'string'
+            ? filter.accountId.trim()
+            : filter.accountId.toString();
+        if (accountIdStr.trim() !== '') {
+          params = params.set('accountId', accountIdStr);
+        }
+      }
+      if (filter.type) {
+        const typeStr =
+          typeof filter.type === 'string'
+            ? filter.type.trim()
+            : String(filter.type);
+        if (typeStr !== '') {
+          params = params.set('type', typeStr);
+        }
+      }
+      if (filter.status) {
+        const statusStr =
+          typeof filter.status === 'string'
+            ? filter.status.trim()
+            : String(filter.status);
+        if (statusStr !== '') {
+          params = params.set('status', statusStr);
+        }
+      }
+      if (filter.startDate && filter.startDate.trim() !== '') {
+        params = params.set('startDate', filter.startDate.trim());
+      }
+      if (filter.endDate && filter.endDate.trim() !== '') {
+        params = params.set('endDate', filter.endDate.trim());
+      }
+      if (filter.minAmount !== undefined && filter.minAmount !== null) {
+        params = params.set('minAmount', filter.minAmount.toString());
+      }
+      if (filter.maxAmount !== undefined && filter.maxAmount !== null) {
+        params = params.set('maxAmount', filter.maxAmount.toString());
+      }
+      if (filter.page !== undefined && filter.page !== null) {
+        params = params.set('page', filter.page.toString());
+      }
+      if (filter.size !== undefined && filter.size !== null) {
+        params = params.set('size', filter.size.toString());
+      }
+      if (filter.sortBy && filter.sortBy.trim() !== '') {
+        params = params.set('sortBy', filter.sortBy.trim());
+      }
+      if (filter.sortDirection) {
+        params = params.set('sortDirection', filter.sortDirection);
+      }
+    }
+
+    // Try customer-specific endpoint first
+    const customerEndpoint = `${this.apiUrl}/customer/transactions`;
+    console.log(
+      'getCustomerTransactions - Trying customer endpoint:',
+      customerEndpoint
+    );
+
+    return this.http.get<any>(customerEndpoint, { params }).pipe(
+      map((backendResponse) => {
+        console.log(
+          'getCustomerTransactions - Raw backend response:',
+          backendResponse
+        );
+
+        // Map backend response structure to frontend expected structure
+        const mappedResponse: PagedResponse<Transaction> = {
+          content: backendResponse.transactions || [], // Backend uses "transactions" field
+          totalElements: backendResponse.totalElements || 0,
+          totalPages: backendResponse.totalPages || 0,
+          size: backendResponse.size || 10,
+          number: backendResponse.currentPage || 0, // Backend uses "currentPage"
+          first: (backendResponse.currentPage || 0) === 0,
+          last:
+            (backendResponse.currentPage || 0) >=
+            (backendResponse.totalPages || 1) - 1,
+        };
+
+        console.log(
+          'getCustomerTransactions - Mapped response:',
+          mappedResponse
+        );
+        return mappedResponse;
+      }),
+      tap((response) => {
+        console.log(
+          'getCustomerTransactions - Customer endpoint success:',
+          response
+        );
+      }),
+      catchError((error) => {
+        console.log(
+          'getCustomerTransactions - Customer endpoint failed, trying general endpoint...'
+        );
+
+        // Fallback to general transactions endpoint
+        const generalEndpoint = `${this.apiUrl}/transactions`;
+        console.log(
+          'getCustomerTransactions - Trying general endpoint:',
+          generalEndpoint
+        );
+
+        return this.http
+          .get<PagedResponse<Transaction>>(generalEndpoint, { params })
+          .pipe(
+            tap((response) => {
+              console.log(
+                'getCustomerTransactions - General endpoint success:',
+                response
+              );
+            }),
+            catchError((generalError) => {
+              console.error(
+                'getCustomerTransactions - All endpoints failed:',
+                generalError
+              );
+              return throwError(() => error); // Return original error
+            })
+          );
+      })
+    );
   }
 }
