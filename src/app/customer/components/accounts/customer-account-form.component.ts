@@ -10,6 +10,7 @@ import {
 import { Observable } from 'rxjs';
 import { BankingApiService } from '../../../core/services/banking-api.service';
 import { AuthService } from '../../../auth/services/auth.service';
+import { AccountService } from '../../../shared/services/account.service';
 import {
   CurrentBankAccountDTO,
   SavingBankAccountDTO,
@@ -290,13 +291,109 @@ export class CustomerAccountFormComponent implements OnInit {
     private fb: FormBuilder,
     private router: Router,
     private bankingApiService: BankingApiService,
-    private authService: AuthService
+    private authService: AuthService,
+    private accountService: AccountService
   ) {
     this.accountForm = this.initializeForm();
   }
 
   ngOnInit(): void {
-    // Component initialization
+    // Get customer information when component loads
+    this.loadCustomerInfo();
+  }
+
+  private loadCustomerInfo(): void {
+    // Use the account service to get customer accounts, which will give us the customer ID
+    this.accountService.getCustomerAccounts().subscribe({
+      next: (accounts) => {
+        console.log(
+          '✅ [ACCOUNT CREATION] Customer accounts loaded:',
+          accounts
+        );
+        console.log(
+          '✅ [ACCOUNT CREATION] Number of accounts:',
+          accounts?.length || 0
+        );
+
+        if (accounts && accounts.length > 0) {
+          // Extract customer ID from the first account
+          const firstAccount = accounts[0];
+          console.log(
+            '✅ [ACCOUNT CREATION] First account structure:',
+            firstAccount
+          );
+          console.log(
+            '✅ [ACCOUNT CREATION] Available properties:',
+            Object.keys(firstAccount)
+          );
+
+          // Try to get customer ID from the account
+          let foundCustomerId = null;
+          if (firstAccount.customerDTO?.id) {
+            foundCustomerId = firstAccount.customerDTO.id;
+            console.log(
+              '✅ [ACCOUNT CREATION] Found customerDTO.id:',
+              foundCustomerId
+            );
+          } else if (firstAccount.customerId) {
+            foundCustomerId = firstAccount.customerId;
+            console.log(
+              '✅ [ACCOUNT CREATION] Found customerId:',
+              foundCustomerId
+            );
+          } else {
+            // Let's check what customer-related fields exist
+            console.log(
+              '🔍 [ACCOUNT CREATION] Checking for customer fields...'
+            );
+            console.log(
+              '🔍 [ACCOUNT CREATION] customerId:',
+              firstAccount.customerId
+            );
+            console.log(
+              '🔍 [ACCOUNT CREATION] customerDTO:',
+              firstAccount.customerDTO
+            );
+            console.log(
+              '🔍 [ACCOUNT CREATION] customerName:',
+              firstAccount.customerName
+            );
+
+            // Check if there's any field that contains customer info
+            Object.keys(firstAccount).forEach((key) => {
+              if (key.toLowerCase().includes('customer')) {
+                console.log(
+                  `🔍 [ACCOUNT CREATION] Found customer field ${key}:`,
+                  (firstAccount as any)[key]
+                );
+              }
+            });
+          }
+
+          if (foundCustomerId) {
+            console.log(
+              '✅ [ACCOUNT CREATION] Storing customer ID:',
+              foundCustomerId
+            );
+            // Store the customer ID for later use
+            (this as any).customerIdFromAccounts = foundCustomerId;
+          } else {
+            console.log(
+              '❌ [ACCOUNT CREATION] No customer ID found in account object'
+            );
+          }
+        } else {
+          console.log('❌ [ACCOUNT CREATION] No accounts found for customer');
+        }
+      },
+      error: (error) => {
+        console.error(
+          '❌ [ACCOUNT CREATION] Error loading customer info:',
+          error
+        );
+        // This is not critical, we'll try other methods during account creation
+      },
+    });
   }
 
   private initializeForm(): FormGroup {
@@ -331,14 +428,42 @@ export class CustomerAccountFormComponent implements OnInit {
     this.successMessage = '';
 
     const currentUser = this.authService.getCurrentUser();
+    console.log('🔍 [ACCOUNT CREATION] Current user:', currentUser);
+
     if (!currentUser) {
       this.errorMessage = 'User not authenticated. Please login again.';
       this.loading = false;
       return;
     }
 
+    // Get customer ID from the user object
+    let customerId = currentUser.id;
+
+    // If the user ID is 0 or undefined, try to get it from the customer relationship
+    if (!customerId || customerId === 0) {
+      console.log(
+        '⚠️ [ACCOUNT CREATION] User ID is 0 or undefined, trying alternative methods'
+      );
+
+      // Try to get customer ID from existing accounts first
+      if ((this as any).customerIdFromAccounts) {
+        customerId = (this as any).customerIdFromAccounts;
+        console.log(
+          '✅ [ACCOUNT CREATION] Found customer ID from existing accounts:',
+          customerId
+        );
+      } else {
+        // If still no customer ID, show error
+        this.errorMessage =
+          'Customer information not found. Please contact support or try logging in again.';
+        this.loading = false;
+        return;
+      }
+    }
+
+    console.log('✅ [ACCOUNT CREATION] Using customer ID:', customerId);
+
     const formValue = this.accountForm.value;
-    const customerId = currentUser.id;
     const initialBalance = formValue.initialBalance;
 
     let createAccount$: Observable<

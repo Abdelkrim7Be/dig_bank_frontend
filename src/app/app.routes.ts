@@ -204,14 +204,13 @@ export const routes: Routes = [
             './customer/components/accounts/customer-accounts.component'
           ).then((c) => c.CustomerAccountsComponent),
       },
-      // Temporarily commented out - will fix later
-      // {
-      //   path: 'accounts/new',
-      //   loadComponent: () =>
-      //     import(
-      //       './customer/components/accounts/customer-account-form.component'
-      //     ).then((c) => c.CustomerAccountFormComponent),
-      // },
+      {
+        path: 'accounts/new',
+        loadComponent: () =>
+          import(
+            './customer/components/accounts/customer-account-form.component'
+          ).then((c) => c.CustomerAccountFormComponent),
+      },
       {
         path: 'accounts/:id',
         loadComponent: () =>
