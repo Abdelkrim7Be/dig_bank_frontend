@@ -283,11 +283,27 @@ export class CustomerDepositComponent implements OnInit {
     this.loading = true;
     this.errorMessage = '';
 
+    console.log('🔍 Loading customer accounts...');
+    console.log('🔍 Current user:', this.authService.getCurrentUser());
+    console.log('🔍 Is authenticated:', this.authService.isAuthenticated());
+
     this.accountService.getCustomerAccounts().subscribe({
       next: (accounts) => {
+        console.log('✅ Received accounts:', accounts);
+        console.log('✅ Number of accounts:', accounts?.length || 0);
+
         this.accounts = accounts.filter(
-          (account) => account.status === 'ACTIVATED'
+          (account) =>
+            account.status === 'ACTIVATED' || account.status === 'CREATED'
         );
+
+        console.log('✅ Filtered activated accounts:', this.accounts);
+        console.log('✅ Number of activated accounts:', this.accounts.length);
+
+        if (this.accounts.length === 0) {
+          this.errorMessage =
+            'No active accounts found. Please contact support to create an account.';
+        }
 
         // Pre-select account if provided in route
         if (this.preSelectedAccountId && this.accounts.length > 0) {
@@ -302,8 +318,18 @@ export class CustomerDepositComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading customer accounts:', error);
-        this.errorMessage = 'Failed to load your accounts. Please try again.';
+        console.error('❌ Error loading customer accounts:', error);
+        console.error('❌ Error status:', error.status);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error details:', error.error);
+
+        if (error.status === 401) {
+          this.errorMessage = 'Authentication failed. Please login again.';
+        } else if (error.status === 403) {
+          this.errorMessage = 'Access denied. Please check your permissions.';
+        } else {
+          this.errorMessage = 'Failed to load your accounts. Please try again.';
+        }
         this.loading = false;
       },
     });

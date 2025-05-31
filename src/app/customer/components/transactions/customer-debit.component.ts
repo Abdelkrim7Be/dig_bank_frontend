@@ -325,11 +325,33 @@ export class CustomerDebitComponent implements OnInit {
     this.loading = true;
     this.errorMessage = '';
 
+    console.log('🔍 [DEBIT] Loading customer accounts...');
+    console.log('🔍 [DEBIT] Current user:', this.authService.getCurrentUser());
+    console.log(
+      '🔍 [DEBIT] Is authenticated:',
+      this.authService.isAuthenticated()
+    );
+
     this.accountService.getCustomerAccounts().subscribe({
       next: (accounts) => {
+        console.log('✅ [DEBIT] Received accounts:', accounts);
+        console.log('✅ [DEBIT] Number of accounts:', accounts?.length || 0);
+
         this.accounts = accounts.filter(
-          (account) => account.status === 'ACTIVATED'
+          (account) =>
+            account.status === 'ACTIVATED' || account.status === 'CREATED'
         );
+
+        console.log('✅ [DEBIT] Filtered activated accounts:', this.accounts);
+        console.log(
+          '✅ [DEBIT] Number of activated accounts:',
+          this.accounts.length
+        );
+
+        if (this.accounts.length === 0) {
+          this.errorMessage =
+            'No active accounts found. Please contact support to create an account.';
+        }
 
         // Pre-select account if provided in route
         if (this.preSelectedAccountId && this.accounts.length > 0) {
@@ -344,8 +366,18 @@ export class CustomerDebitComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading customer accounts:', error);
-        this.errorMessage = 'Failed to load your accounts. Please try again.';
+        console.error('❌ [DEBIT] Error loading customer accounts:', error);
+        console.error('❌ [DEBIT] Error status:', error.status);
+        console.error('❌ [DEBIT] Error message:', error.message);
+        console.error('❌ [DEBIT] Error details:', error.error);
+
+        if (error.status === 401) {
+          this.errorMessage = 'Authentication failed. Please login again.';
+        } else if (error.status === 403) {
+          this.errorMessage = 'Access denied. Please check your permissions.';
+        } else {
+          this.errorMessage = 'Failed to load your accounts. Please try again.';
+        }
         this.loading = false;
       },
     });

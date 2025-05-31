@@ -389,16 +389,55 @@ export class CustomerTransferComponent implements OnInit {
     this.loading = true;
     this.errorMessage = '';
 
+    console.log('🔍 [TRANSFER] Loading customer accounts...');
+    console.log(
+      '🔍 [TRANSFER] Current user:',
+      this.authService.getCurrentUser()
+    );
+    console.log(
+      '🔍 [TRANSFER] Is authenticated:',
+      this.authService.isAuthenticated()
+    );
+
     this.accountService.getCustomerAccounts().subscribe({
       next: (accounts) => {
+        console.log('✅ [TRANSFER] Received accounts:', accounts);
+        console.log('✅ [TRANSFER] Number of accounts:', accounts?.length || 0);
+
         this.accounts = accounts.filter(
-          (account) => account.status === 'ACTIVATED'
+          (account) =>
+            account.status === 'ACTIVATED' || account.status === 'CREATED'
         );
+
+        console.log(
+          '✅ [TRANSFER] Filtered activated accounts:',
+          this.accounts
+        );
+        console.log(
+          '✅ [TRANSFER] Number of activated accounts:',
+          this.accounts.length
+        );
+
+        if (this.accounts.length === 0) {
+          this.errorMessage =
+            'No active accounts found. Please contact support to create an account.';
+        }
+
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading customer accounts:', error);
-        this.errorMessage = 'Failed to load your accounts. Please try again.';
+        console.error('❌ [TRANSFER] Error loading customer accounts:', error);
+        console.error('❌ [TRANSFER] Error status:', error.status);
+        console.error('❌ [TRANSFER] Error message:', error.message);
+        console.error('❌ [TRANSFER] Error details:', error.error);
+
+        if (error.status === 401) {
+          this.errorMessage = 'Authentication failed. Please login again.';
+        } else if (error.status === 403) {
+          this.errorMessage = 'Access denied. Please check your permissions.';
+        } else {
+          this.errorMessage = 'Failed to load your accounts. Please try again.';
+        }
         this.loading = false;
       },
     });
