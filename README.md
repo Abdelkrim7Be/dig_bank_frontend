@@ -2,7 +2,7 @@
 
 A modern Angular 19 frontend application for the Digital Banking system, featuring responsive design, real-time dashboards, and comprehensive banking operations for both administrators and customers.
 
-![Customer Dashboard](../dig_bank/assets/customer/customer%20dashboard.jpeg)
+![Customer Dashboard](assets/customer/customer%20dashboard.jpeg)
 
 ## 🌟 Overview
 
@@ -11,12 +11,14 @@ This Angular frontend provides a complete user interface for the Digital Banking
 ## ✨ Key Features
 
 ### 🔐 Authentication & Security
+
 - **JWT-based Authentication**: Secure token-based authentication
 - **Role-based Access Control**: Separate admin and customer interfaces
 - **Auto-logout**: Automatic session management
 - **Route Guards**: Protected routes based on user roles
 
 ### 👨‍💼 Admin Interface
+
 - **Comprehensive Dashboard**: Real-time banking statistics and charts
 - **Customer Management**: Complete CRUD operations for customers
 - **Account Management**: Create and manage customer accounts
@@ -25,6 +27,7 @@ This Angular frontend provides a complete user interface for the Digital Banking
 - **User Management**: Manage system users and roles
 
 ### 👤 Customer Interface
+
 - **Personal Dashboard**: Account overview and recent transactions
 - **Account Management**: View account details and balances
 - **Banking Operations**: Perform deposits, withdrawals, and transfers
@@ -32,6 +35,7 @@ This Angular frontend provides a complete user interface for the Digital Banking
 - **Account Opening**: Request new accounts
 
 ### 🎨 Modern UI/UX
+
 - **Responsive Design**: Mobile-first responsive layout
 - **Bootstrap 5**: Modern UI components and styling
 - **Interactive Charts**: Real-time data visualization with Chart.js
@@ -51,73 +55,85 @@ This Angular frontend provides a complete user interface for the Digital Banking
 
 ## 🖥️ User Interfaces
 
+> **Note**: All screenshots below are included in the `assets/` folder of this project for easy reference and documentation purposes.
+
 ### 🔑 Authentication
+
 Secure login interface with role-based redirection.
 
-![Login Interface](../dig_bank/assets/admin/Login.png)
+![Login Interface](assets/admin/Login.png)
 
 ### 👨‍💼 Admin Interface
 
 #### Admin Dashboard
+
 Comprehensive overview with statistics, charts, and quick actions.
 
-![Admin Dashboard](../dig_bank/assets/admin/dashboard%20admin.jpeg)
+![Admin Dashboard](assets/admin/dashboard%20admin.jpeg)
 
 #### Customer Management
+
 Complete customer management with search and filtering.
 
-![Admin Customer View](../dig_bank/assets/admin/Admin%20Customer%20view.jpeg)
+![Admin Customer View](assets/admin/Admin%20Customer%20view.jpeg)
 
-![Admin Add Customer](../dig_bank/assets/admin/Admin%20Add%20a%20customer.jpeg)
+![Admin Add Customer](assets/admin/Admin%20Add%20a%20customer.jpeg)
 
 #### Account Management
+
 Account creation and management interface.
 
-![Admin Create Account](../dig_bank/assets/admin/admin%20Create%20an%20account.jpeg)
+![Admin Create Account](assets/admin/admin%20Create%20an%20account.jpeg)
 
-![Admin Accounts View](../dig_bank/assets/admin/Accounts%20view%20admin.jpeg)
+![Admin Accounts View](assets/admin/Accounts%20view%20admin.jpeg)
 
 #### Banking Operations
+
 Administrative banking operations interface.
 
-![Admin Credit Action](../dig_bank/assets/admin/admin%20credit%20action%20.png)
+![Admin Credit Action](assets/admin/admin%20credit%20action%20.png)
 
-![Admin Debit Action](../dig_bank/assets/admin/admin%20debit%20action%20.png)
+![Admin Debit Action](assets/admin/admin%20debit%20action%20.png)
 
-![Admin Transfer Action](../dig_bank/assets/admin/admin%20transfer%20action.jpeg)
+![Admin Transfer Action](assets/admin/admin%20transfer%20action.jpeg)
 
 #### Transaction Management
+
 Comprehensive transaction monitoring and management.
 
-![Admin Transactions](../dig_bank/assets/admin/adminTransactions%20per%20account.jpeg)
+![Admin Transactions](assets/admin/adminTransactions%20per%20account.jpeg)
 
 ### 👤 Customer Interface
 
 #### Customer Dashboard
+
 Personal banking dashboard with account overview.
 
-![Customer Dashboard](../dig_bank/assets/customer/customer%20dashboard.jpeg)
+![Customer Dashboard](assets/customer/customer%20dashboard.jpeg)
 
 #### Account Management
+
 Customer account view and management.
 
-![Customer Accounts](../dig_bank/assets/customer/accounts%20view%20customer.jpeg)
+![Customer Accounts](assets/customer/accounts%20view%20customer.jpeg)
 
-![Customer Account Opening](../dig_bank/assets/customer/customer%20opening%20an%20account.jpeg)
+![Customer Account Opening](assets/customer/customer%20opening%20an%20account.jpeg)
 
 #### Banking Operations
+
 Customer banking operations interface.
 
-![Customer Credit/Deposit](../dig_bank/assets/customer/credit%20deposit%20action.jpeg)
+![Customer Credit/Deposit](assets/customer/credit%20deposit%20action.jpeg)
 
-![Customer Debit](../dig_bank/assets/customer/debit%20action.jpeg)
+![Customer Debit](assets/customer/debit%20action.jpeg)
 
-![Customer Transfer](../dig_bank/assets/customer/transfer%20action.jpeg)
+![Customer Transfer](assets/customer/transfer%20action.jpeg)
 
 #### Transaction History
+
 Complete transaction history with filtering.
 
-![Customer Transactions](../dig_bank/assets/customer/Transactions%20customer.jpeg)
+![Customer Transactions](assets/customer/Transactions%20customer.jpeg)
 
 ## 🚀 Getting Started
 
@@ -149,7 +165,7 @@ Complete transaction history with filtering.
    ```typescript
    export const environment = {
      production: false,
-     apiUrl: 'http://localhost:8085/api',
+     apiUrl: "http://localhost:8085/api",
      // ... other configurations
    };
    ```
@@ -169,10 +185,12 @@ Complete transaction history with filtering.
 ### Default Credentials
 
 #### Admin Access
+
 - **Username**: `admin`
 - **Password**: `admin123`
 
 #### Customer Access
+
 - **Username**: `abdelkrim`
 - **Password**: `password123`
 
@@ -206,6 +224,9 @@ dig_bank_frontend/
 │   │   ├── navigation/         # Navigation components
 │   │   └── app.component.ts    # Root component
 │   ├── assets/                 # Static assets
+├── assets/                     # Project documentation assets
+│   ├── admin/                  # Admin interface screenshots
+│   └── customer/               # Customer interface screenshots
 │   ├── environments/           # Environment configurations
 │   └── styles.css              # Global styles
 ├── public/                     # Public assets
@@ -263,18 +284,18 @@ npm run serve:prod
 ```typescript
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:8085/api',
+  apiUrl: "http://localhost:8085/api",
   endpoints: {
     auth: {
-      login: '/auth/login',
-      register: '/auth/register',
+      login: "/auth/login",
+      register: "/auth/register",
     },
     // ... other endpoints
   },
   testCredentials: {
-    admin: { username: 'admin', password: 'admin123' },
+    admin: { username: "admin", password: "admin123" },
     customers: [
-      { username: 'abdelkrim', password: 'password123' },
+      { username: "abdelkrim", password: "password123" },
       // ... other customers
     ],
   },
@@ -286,7 +307,7 @@ export const environment = {
 ```typescript
 export const environment = {
   production: true,
-  apiUrl: 'https://your-api-domain.com/api',
+  apiUrl: "https://your-api-domain.com/api",
   // ... production configurations
 };
 ```
@@ -305,11 +326,7 @@ Key configurations in `angular.json`:
             "outputPath": "dist/dig_bank_frontend",
             "index": "src/index.html",
             "main": "src/main.ts",
-            "styles": [
-              "node_modules/bootstrap/dist/css/bootstrap.min.css",
-              "node_modules/bootstrap-icons/font/bootstrap-icons.css",
-              "src/styles.css"
-            ]
+            "styles": ["node_modules/bootstrap/dist/css/bootstrap.min.css", "node_modules/bootstrap-icons/font/bootstrap-icons.css", "src/styles.css"]
           }
         }
       }
@@ -320,15 +337,15 @@ Key configurations in `angular.json`:
 
 ## 📦 Available Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm start` | Start development server |
-| `npm run build` | Build for development |
-| `npm run build:prod` | Build for production |
-| `npm test` | Run unit tests |
-| `npm run e2e` | Run e2e tests |
-| `npm run lint` | Run linting |
-| `npm run serve:ssr` | Serve with SSR |
+| Script               | Description              |
+| -------------------- | ------------------------ |
+| `npm start`          | Start development server |
+| `npm run build`      | Build for development    |
+| `npm run build:prod` | Build for production     |
+| `npm test`           | Run unit tests           |
+| `npm run e2e`        | Run e2e tests            |
+| `npm run lint`       | Run linting              |
+| `npm run serve:ssr`  | Serve with SSR           |
 
 ## 🎨 Styling & Theming
 
@@ -338,8 +355,8 @@ The application uses Bootstrap 5 for styling:
 
 ```scss
 // Global styles in styles.css
-@import '~bootstrap/dist/css/bootstrap.min.css';
-@import '~bootstrap-icons/font/bootstrap-icons.css';
+@import "~bootstrap/dist/css/bootstrap.min.css";
+@import "~bootstrap-icons/font/bootstrap-icons.css";
 
 // Custom variables
 :root {
@@ -389,7 +406,7 @@ export class AuthGuard implements CanActivate {
 @Injectable()
 export class RoleGuard implements CanActivate {
   canActivate(route: ActivatedRouteSnapshot): boolean {
-    const requiredRole = route.data['role'];
+    const requiredRole = route.data["role"];
     return this.authService.hasRole(requiredRole);
   }
 }
@@ -405,7 +422,7 @@ export class TokenInterceptor implements HttpInterceptor {
     const token = this.authService.getToken();
     if (token) {
       req = req.clone({
-        setHeaders: { Authorization: `Bearer ${token}` }
+        setHeaders: { Authorization: `Bearer ${token}` },
       });
     }
     return next.handle(req);
