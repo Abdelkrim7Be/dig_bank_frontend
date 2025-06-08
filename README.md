@@ -464,9 +464,8 @@ This project is licensed under the MIT License - see the [LICENSE](../LICENSE) f
 
 ## 📞 Support
 
-For support and questions:
+For support:
 
-- **Email**: support@digitalbanking.com
 - **GitHub Issues**: [Create an issue](https://github.com/bellagnech/digital-banking/issues)
 
 ---
