@@ -468,6 +468,5 @@ For support and questions:
 
 - **Email**: support@digitalbanking.com
 - **GitHub Issues**: [Create an issue](https://github.com/bellagnech/digital-banking/issues)
-- **Documentation**: [Wiki](https://github.com/bellagnech/digital-banking/wiki)
 
 ---
