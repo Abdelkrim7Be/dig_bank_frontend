@@ -471,5 +471,3 @@ For support and questions:
 - **Documentation**: [Wiki](https://github.com/bellagnech/digital-banking/wiki)
 
 ---
-
-**Built with ❤️ using Angular 19 and Bootstrap 5**
